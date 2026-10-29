@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>정·역회전 인터록 결선 실습 | 디지털 트윈</title>
+<style>
+:root{--bg:#0b1220;--panel:#121e31;--panel2:#17263d;--line:#31445f;--text:#eaf2ff;--muted:#9eb1ca;--cyan:#4de2d1;--yellow:#ffd166;--red:#ff6577;--blue:#65a8ff;--green:#65e6a5}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(140deg,#08101c,#101d31 60%,#0b1424);color:var(--text);font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+header{padding:26px clamp(16px,4vw,48px) 22px;border-bottom:1px solid #25364e;background:#0a1322cc}
+.eyebrow{color:var(--cyan);font-size:.78rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase}
+h1{margin:7px 0 8px;font-size:clamp(1.5rem,3vw,2.35rem);line-height:1.2}header p{margin:0;color:var(--muted);max-width:900px}
+main{max-width:1440px;margin:auto;padding:22px clamp(12px,3vw,34px) 48px}
+.section-title{display:flex;align-items:center;gap:10px;margin:8px 0 14px;font-size:1.18rem}.num{display:grid;place-items:center;width:28px;height:28px;border-radius:8px;background:#1a3a4a;color:var(--cyan);font-size:.85rem}
+.topgrid{display:grid;grid-template-columns:minmax(280px,.82fr) minmax(400px,1.18fr);gap:16px}
+.panel{background:linear-gradient(155deg,var(--panel),#0f192a);border:1px solid var(--line);border-radius:16px;padding:18px;min-width:0;box-shadow:0 12px 35px #0002}
+h2{font-size:1.02rem;margin:0 0 12px}h3{font-size:.93rem;margin:15px 0 7px;color:#d8e7fb}
+.muted{color:var(--muted)}.chips{display:flex;gap:7px;flex-wrap:wrap;margin:12px 0}.chip{font-size:.75rem;border:1px solid #35536a;color:#bdeee9;border-radius:999px;padding:4px 9px}
+ul{padding-left:20px;margin:8px 0;color:#d2deef}li{margin:5px 0}.warning{padding:11px 12px;border-radius:10px;background:#3a202a;border:1px solid #713844;color:#ffdce1;margin-top:12px}
+.circuit-wrap{background:#091321;border:1px solid #263b54;border-radius:12px;padding:8px;overflow:hidden}
+svg{display:block;width:100%;height:auto}.wire{stroke:#7489a4;stroke-width:3;fill:none;stroke-linecap:round;stroke-linejoin:round}.live{stroke:var(--cyan);stroke-width:4;stroke-dasharray:8 6;animation:flow 1s linear infinite}.contact{stroke:#eaf2ff;stroke-width:3;fill:none}.label{fill:#eaf2ff;font-size:12px}.small-label{fill:#9eb1ca;font-size:10px}.node{fill:#ffd166}
+@keyframes flow{to{stroke-dashoffset:-28}}
+.legend{display:flex;gap:14px;flex-wrap:wrap;color:var(--muted);font-size:.78rem;margin-top:9px}.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px}
+.controls{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.btn{border:1px solid #405773;background:#1b2b42;color:var(--text);border-radius:10px;padding:10px 13px;font-weight:700;cursor:pointer;transition:.15s}.btn:hover{filter:brightness(1.18)}.btn:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}.btn.forward{border-color:#278b7e;background:#12483f}.btn.reverse{border-color:#3d77c5;background:#17365e}.btn.danger{border-color:#8e4050;background:#48232d}.btn.active{box-shadow:0 0 0 2px var(--cyan) inset}
+.status{display:flex;align-items:center;gap:9px;padding:10px 12px;background:#0b1727;border:1px solid #263b54;border-radius:10px;margin-top:10px}.lamp{width:11px;height:11px;border-radius:50%;background:#607086;box-shadow:0 0 0 4px #60708622}.lamp.on{background:var(--green);box-shadow:0 0 12px #65e6a588}.lamp.err{background:var(--red);box-shadow:0 0 12px #ff657788}
+.bottom{margin-top:24px}.experience-grid{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(280px,.8fr);gap:16px}
+.scene{position:relative;min-height:360px;overflow:hidden;border-radius:13px;background:radial-gradient(ellipse at 50% 65%,#233b55,#0a1423 68%);border:1px solid #2a405a;perspective:900px}
+.scene-label{position:absolute;top:12px;left:12px;font-size:.74rem;color:#c5d8f0;background:#0a1322c9;border:1px solid #314760;border-radius:8px;padding:6px 9px;z-index:2}
+.bench{position:absolute;left:8%;right:8%;bottom:12%;height:16%;background:linear-gradient(#344a61,#17273a);border:1px solid #59708b;transform:rotateX(58deg);box-shadow:0 25px 25px #0008}
+.equipment{position:absolute;left:50%;top:49%;transform:translate(-50%,-50%) rotateX(5deg) rotateY(-9deg);width:min(84%,570px);display:flex;align-items:end;justify-content:center;gap:clamp(8px,2vw,22px);z-index:1}
+.device{width:24%;max-width:130px;min-width:72px;position:relative;height:170px;border-radius:8px 8px 5px 5px;background:linear-gradient(100deg,#26394d,#60768a 35%,#293d52 72%,#17273a);border:1px solid #8094a9;box-shadow:8px 12px 14px #0007;transition:.25s}
+.device .cap{position:absolute;left:8%;right:8%;top:8px;height:25px;background:#101d2c;border:1px solid #8ba0b6;border-radius:4px}
+.device .name{position:absolute;top:43px;width:100%;text-align:center;font-size:.72rem;font-weight:900;color:#e5effa}
+.device .core{position:absolute;left:20%;right:20%;top:72px;height:48px;border-radius:5px;background:#172638;border:2px solid #9badbd;display:grid;place-items:center;color:#90a7bc;font-size:.7rem}
+.device .terminals{position:absolute;left:10%;right:10%;bottom:8px;display:flex;justify-content:space-between}
+.term{width:10px;height:10px;border-radius:50%;background:#d6b16c;border:2px solid #fff0c9}
+.device.energized{border-color:var(--green);box-shadow:0 0 18px #65e6a566,8px 12px 14px #0007}
+.device.energized .core{background:#16584d;border-color:var(--green);color:#dffff2}
+.device.blocked{opacity:.5;filter:grayscale(.7)}
+.motor{width:125px;height:125px;border-radius:50%;background:linear-gradient(135deg,#70869b,#1a2c40 65%);border:5px solid #a5b6c6;box-shadow:8px 12px 16px #0008;display:grid;place-items:center;position:relative;margin-bottom:20px}
+.motor:before{content:"";position:absolute;inset:12px;border:2px dashed #b4c5d4;border-radius:50%}
+.rotor{width:55px;height:55px;border-radius:50%;border:6px solid var(--cyan);border-right-color:transparent;border-bottom-color:var(--cyan);transition:transform .8s;box-shadow:0 0 12px #4de2d155}
+.motor.running .rotor{animation:spin 1.4s linear infinite}.motor.reverse .rotor{animation:spinrev 1.4s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}@keyframes spinrev{to{transform:rotate(-360deg)}}
+.flowline{position:absolute;left:10%;right:10%;top:63%;height:3px;background:#4de2d133;z-index:0}.flowline.on{background:var(--cyan);box-shadow:0 0 12px var(--cyan)}
+.scene-foot{position:absolute;left:12px;right:12px;bottom:10px;display:flex;justify-content:space-between;gap:8px;color:#a9bdd4;font-size:.72rem}
+.info-list{display:grid;gap:10px}.info-row{display:grid;grid-template-columns:100px 1fr;gap:10px;padding:10px;border:1px solid #2b4058;background:#0d1828;border-radius:10px}.info-row strong{color:#c9d9ed;font-size:.82rem}.info-row span{font-size:.82rem;color:var(--muted)}
+.toggleline{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid #283b52}.toggleline:last-child{border:0}.switch{appearance:none;width:42px;height:24px;border-radius:99px;background:#3b4b60;position:relative;cursor:pointer;flex-shrink:0}.switch:checked{background:#168a7b}.switch:before{content:"";position:absolute;width:18px;height:18px;top:3px;left:3px;border-radius:50%;background:white;transition:.15s}.switch:checked:before{left:21px}
+.quiz{margin-top:16px;border-top:1px solid #2b4058;padding-top:14px}.quiz p{margin:6px 0 10px;color:#d9e5f4}.feedback{font-size:.85rem;color:var(--muted);min-height:24px;margin-top:8px}
+.lab-link{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:12px 0;padding:14px 16px;border:1px solid #278b7e;background:#12483f55;border-radius:12px}.lab-link span{color:#d2deef;font-size:.88rem}.lab-link a{display:inline-block;border:1px solid var(--cyan);background:#12483f;color:var(--text);border-radius:10px;padding:10px 15px;font-weight:700;text-decoration:none;transition:.15s}.lab-link a:hover{filter:brightness(1.2)}.lab-link a:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+footer{padding:20px;text-align:center;color:#748aa5;font-size:.75rem}
+@media(max-width:850px){.topgrid,.experience-grid{grid-template-columns:1fr}.scene{min-height:330px}.panel{padding:14px}.device{height:145px}.motor{width:95px;height:95px}.rotor{width:42px;height:42px}}
+@media(max-width:430px){.equipment{gap:6px;width:95%}.device{min-width:58px;height:125px}.device .name{font-size:.62rem}.motor{width:76px;height:76px}.rotor{width:32px;height:32px}.scene{min-height:290px}.info-row{grid-template-columns:80px 1fr}.btn{padding:9px 10px;font-size:.82rem}}
+</style>
+</head>
+<body>
+<header>
+  <div class="eyebrow">전기기능사 · 시퀀스 제어 실습</div>
+  <h1>정·역회전 인터록 결선 실습</h1>
+  <p>정회전·역회전 접촉기의 동시 투입을 방지하고, 주회로 상 교체 원리를 회로도와 인터랙티브 디지털 트윈으로 익힙니다.</p>
+</header>
+<main>
+  <div class="section-title"><span class="num">01</span> 이론 설명 및 회로도</div>
+  <div class="topgrid">
+    <section class="panel">
+      <h2>핵심 원리</h2>
+      <div class="chips"><span class="chip">MC 2개</span><span class="chip">전기적 인터록</span><span class="chip">주회로 상 교체</span></div>
+      <h3>① 정회전 회로 (MC-F)</h3>
+      <ul><li>정회전 버튼을 누르면 MC-F 코일이 여자됩니다.</li><li>MC-F 주접점이 닫히며 모터에 3상 전원이 인가됩니다.</li><li>MC-F의 보조 b접점이 역회전 코일 회로를 차단합니다.</li></ul>
+      <h3>② 역회전 회로 (MC-R)</h3>
+      <ul><li>역회전 회로는 두 상(예: L1과 L3)을 서로 바꿔 모터 회전 방향을 반전시킵니다.</li><li>MC-R이 동작하면 MC-R의 b접점이 정회전 코일 회로를 차단합니다.</li></ul>
+      <h3>③ 인터록의 역할</h3>
+      <ul><li>각 접촉기의 b접점을 상대 코일 회로에 직렬로 연결해 동시 투입을 막습니다.</li><li>실제 설비에서는 기계적 인터록도 함께 적용하는 것이 일반적입니다.</li></ul>
+      <div class="warning"><strong>안전:</strong> 인터록이 누락되면 두 접촉기가 동시에 투입되어 상간 단락이 발생할 수 있습니다. 실제 전원에 연결하지 말고, 무전압 상태에서 결선·검증하세요.</div>
+    </section>
+    <section class="panel">
+      <h2>개념 회로도 — 제어회로 + 주회로</h2>
+      <div class="circuit-wrap">
+        <svg viewBox="0 0 600 390" role="img" aria-label="정역회전 주회로와 전기적 인터록 제어회로 개념도">
+          <text x="18" y="24" class="label" font-weight="700">주회로 (3상)</text>
+          <text x="18" y="45" class="small-label">정회전: L1-L2-L3</text>
+          <text x="330" y="45" class="small-label">역회전: L1-L3-L2 (두 상 교체)</text>
+          <g class="wire">
+            <path d="M42 65 V112 H130 V145 M42 65 H225 V145 M42 65 H320 V145"/>
+            <path d="M130 145 V173 M225 145 V173 M320 145 V173"/>
+            <path d="M130 202 V230 H225 V202 M225 230 H320 V202"/>
+            <path d="M130 230 V255 H320 V230"/>
+            <path d="M130 255 V278 H320 V255"/>
+            <path d="M130 278 V300 H320 V278"/>
+          </g>
+          <g class="contact">
+            <path d="M115 173 H145 M210 173 H240 M305 173 H335"/>
+            <path d="M115 202 L145 181 M210 202 L240 181 M305 202 L335 181"/>
+          </g>
+          <text x="114" y="137" class="small-label">MC-F</text><text x="210" y="137" class="small-label">MC-F</text><text x="305" y="137" class="small-label">MC-F</text>
+          <text x="135" y="321" class="label">M 3~</text><circle cx="150" cy="345" r="18" fill="none" stroke="#4de2d1" stroke-width="2"/><text x="142" y="350" class="label">M</text>
+          <path d="M150 300 V326" class="wire"/>
+          <line x1="18" y1="365" x2="580" y2="365" stroke="#2d425a"/>
+          <text x="18" y="385" class="small-label">※ 교육용 개념도: 실제 단자번호·배선은 사용 기기 도면을 따르세요.</text>
+          <text x="365" y="80" class="label" font-weight="700">제어회로 (개념)</text>
+          <g class="wire">
+            <path d="M365 95 V115 H405 M438 115 H465 V140 H495 M528 140 H555 V115 H580"/>
+            <path d="M365 95 V180 H405 M438 180 H465 V205 H495 M528 205 H555 V180 H580"/>
+            <path d="M365 115 V180"/>
+          </g>
+          <g class="contact">
+            <path d="M405 105 V125 M438 105 V125 M405 170 V190 M438 170 V190"/>
+            <path d="M405 105 L438 125 M405 170 L438 190"/>
+          </g>
+          <text x="399" y="99" class="small-label">STOP</text><text x="401" y="164" class="small-label">STOP</text>
+          <rect x="465" y="128" width="63" height="24" rx="4" fill="#183e3b" stroke="#4de2d1"/><text x="477" y="144" class="label">MC-F</text>
+          <rect x="465" y="193" width="63" height="24" rx="4" fill="#193452" stroke="#65a8ff"/><text x="477" y="209" class="label">MC-R</text>
+          <text x="365" y="246" class="small-label">MC-R b접점 ─ MC-F 코일 직렬</text>
+          <text x="365" y="263" class="small-label">MC-F b접점 ─ MC-R 코일 직렬</text>
+          <text x="365" y="290" class="small-label">자기유지 접점은 각 기동 버튼과 병렬</text>
+          <text x="365" y="307" class="small-label">※ 회로도는 원리 학습용 간략 표현</text>
+        </svg>
+      </div>
+      <div class="legend"><span><i class="dot" style="background:#4de2d1"></i>정회전 경로</span><span><i class="dot" style="background:#65a8ff"></i>역회전 경로</span><span><i class="dot" style="background:#7489a4"></i>비활성 배선</span></div>
+      <p class="muted" style="font-size:.8rem;margin-bottom:0">전기기능사 대비 포인트: b접점은 평상시 닫힘(NC), a접점은 평상시 열림(NO)입니다. 도면의 단자번호는 기기 종류에 따라 확인하세요.</p>
+    </section>
+  </div>
+
+  <section class="panel bottom">
+    <div class="section-title"><span class="num">02</span> 디지털 트윈 체험 — 접점·전류 흐름 시각화</div>
+    <p class="muted">3D 실습공간에서 MC 2개 결선, b접점 인터록, 상 교체를 직접 체험해 보세요. 이 실습은 학습용 시뮬레이션이며 실제 전기설비를 제어하지 않습니다.</p>
+    <div class="lab-link"><span>접촉기 동작, 접점·전류 흐름, 인터록 누락 및 상 교체 오류를 3D로 확인합니다.</span><a href="https://ai.yit.ac.kr/3d/elec/interlockLab.html" target="_blank" rel="noopener noreferrer">정·역회전 인터록 결선 실습 ↗</a></div>
+    <div class="quiz">
+      <h2>전기기능사 확인 문제</h2>
+      <p><strong>Q.</strong> 역회전을 만들기 위해 일반적으로 주회로에서 어떻게 결선합니까?</p>
+      <div class="controls">
+        <button class="btn quizopt" data-answer="a">① 같은 상 순서를 유지한다</button>
+        <button class="btn quizopt" data-answer="b">② 임의의 두 상을 서로 바꾼다</button>
+        <button class="btn quizopt" data-answer="c">③ 보호접지선을 바꾼다</button>
+      </div>
+      <div class="feedback" id="quizFeedback" aria-live="polite"></div>
+    </div>
+  </section>
+</main>
+<footer>교육용 인터랙티브 프로토타입 · 실제 결선 전에는 최신 회로도, 기기 정격, 안전 절차를 확인하세요.</footer>
+<script>
+const $ = id => document.getElementById(id);
+document.querySelectorAll(".quizopt").forEach(btn=>btn.addEventListener("click",()=>{
+  const correct=btn.dataset.answer==="b";
+  $("quizFeedback").textContent=correct?"정답입니다. 3상 유도전동기의 회전 방향을 바꾸려면 일반적으로 임의의 두 상을 서로 바꿉니다.":"다시 생각해 보세요. 정·역회전 회로는 주회로의 상 순서를 바꾸는 것이 핵심입니다.";
+  $("quizFeedback").style.color=correct?"#65e6a5":"#ffb7c0";
+}));
+</script>
+</body>
+</html>

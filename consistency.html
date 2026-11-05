@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>자기유지 기동·정지 3D 전기실습실</title>
+<style>
+html,body{margin:0;height:100%;overflow:hidden;background:#070d18;font-family:"Malgun Gothic",Arial,sans-serif;color:#eaf2ff}
+canvas{display:block}
+#help{position:fixed;top:14px;right:14px;z-index:5;background:#ffd166;color:#0a1322;border-radius:10px;padding:11px 18px;font-weight:bold;font-size:15px;text-decoration:none;box-shadow:0 4px 14px #0008}
+#help:hover{filter:brightness(1.15)}
+#tg{position:fixed;top:14px;left:14px;z-index:5;padding:9px 14px;font-size:13px}
+#ui{position:fixed;top:56px;left:14px;width:250px;max-height:calc(100% - 130px);overflow:auto;background:#121e31ee;border:1px solid #31445f;border-radius:14px;padding:12px;z-index:4;font-size:13px}
+#ui b{font-size:15px}.r{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:8px 0}
+button{border:1px solid #405773;border-radius:8px;padding:7px 10px;font-weight:bold;font-size:12px;cursor:pointer;background:#1b2b42;color:#eaf2ff}
+button:hover{filter:brightness(1.2)}button.g{background:#12483f;border-color:#278b7e}button.rd{background:#48232d;border-color:#8e4050}
+#stt{background:#0b1727;border:1px solid #263b54;border-radius:8px;padding:8px;line-height:1.6}
+#msg{margin-top:8px;line-height:1.55;color:#9eb1ca}
+.dr{position:fixed;bottom:16px;z-index:4;background:#0a1322ee;border:1px solid #31445f;color:#eaf2ff;border-radius:10px;padding:10px 14px;font-size:13px;text-decoration:none;font-weight:bold}
+#dl{left:14px;border-color:#2f8bff}#dr{right:14px;border-color:#22d68a}.dr:hover{background:#17365e}
+</style></head><body>
+<a id="help" href="selfMaintain.html">📘 이론 설명</a>
+<button id="tg">조작판 ◀</button>
+<div id="ui"><b>자기유지 기동·정지 3D 실습</b>
+<div class="r"><label><input type="checkbox" id="qf"> QF 전원 ON</label><label><input type="checkbox" id="ol"> OL 과부하 트립</label></div>
+<div class="r">형광등 <input type="range" id="br" min="0" max="100" value="85" style="width:150px"></div>
+<div class="r"><button id="b1" class="g">▶ START (누름)</button><button id="b0" class="rd">■ STOP (누름)</button></div>
+<div id="stt"></div>
+<div class="r"><button id="chk">회로 점검</button><button id="ans">정답 배선</button><button id="und">되돌리기</button><button id="clr">전체 삭제</button></div>
+<div class="r"><button id="v1">실내 전체</button><button id="v2">실습대 확대</button></div>
+<div id="msg"></div></div>
+<a class="dr" id="dl" href="interlockLab.html">◀ 왼쪽 문: 가상 인터록 실습실</a>
+<a class="dr" id="dr" href="autoStartLab.html">오른쪽 문: 자동기동 실습실 ▶</a>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const $=id=>document.getElementById(id);
+const R=new THREE.WebGLRenderer({antialias:true});R.setPixelRatio(Math.min(devicePixelRatio,2));R.outputEncoding=THREE.sRGBEncoding;R.toneMapping=THREE.ACESFilmicToneMapping;R.toneMappingExposure=1;
+document.body.appendChild(R.domElement);
+const S=new THREE.Scene();S.background=new THREE.Color(0x070d18);
+const C=new THREE.PerspectiveCamera(55,1,.1,60);
+const M=(c,m=0,r=.5,e=0,ei=1)=>new THREE.MeshStandardMaterial({color:c,metalness:m,roughness:r,emissive:e,emissiveIntensity:ei});
+const steel=()=>M(0xc3ccd6,1,.3),dsteel=()=>M(0x56636f,1,.32),chrome=()=>M(0xffffff,1,.1),plas=(c,r=.25)=>M(c,0,r);
+function box(w,h,d,mat,x,y,z,p=S){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);m.position.set(x,y,z);p.add(m);return m}
+function cyl(rt,rb,h,mat,x,y,z,p=S){const m=new THREE.Mesh(new THREE.CylinderGeometry(rt,rb,h,24),mat);m.rotation.x=Math.PI/2;m.position.set(x,y,z);p.add(m);return m}
+function cylY(r,h,mat,x,y,z){const m=new THREE.Mesh(new THREE.CylinderGeometry(r,r,h,24),mat);m.position.set(x,y,z);S.add(m);return m}
+function cylX(r,l,mat,x,y,z){const m=new THREE.Mesh(new THREE.CylinderGeometry(r,r,l,24),mat);m.rotation.z=Math.PI/2;m.position.set(x,y,z);S.add(m);return m}
+function lab(t,w,x,y,z,col='#fff',bg){const c=document.createElement('canvas'),k=c.getContext('2d');c.width=512;c.height=128;
+ if(bg){k.fillStyle=bg;k.fillRect(0,0,512,128)}let f=64;k.font='bold '+f+'px Malgun Gothic,Arial';while(k.measureText(t).width>490&&f>20){f-=3;k.font='bold '+f+'px Malgun Gothic,Arial'}
+ k.fillStyle=col;k.textAlign='center';k.textBaseline='middle';k.fillText(t,256,66);const tx=new THREE.CanvasTexture(c);tx.encoding=THREE.sRGBEncoding;
+ const m=new THREE.Mesh(new THREE.PlaneGeometry(w,w/4),new THREE.MeshBasicMaterial({map:tx,transparent:true,toneMapped:false}));m.position.set(x,y,z);S.add(m);return m}
+const IX=[],T={};
+/* ---- 금속 반사용 환경(스튜디오 조명) ---- */
+const ES=new THREE.Scene();ES.add(new THREE.Mesh(new THREE.BoxGeometry(40,40,40),new THREE.MeshBasicMaterial({color:0x22344f,side:THREE.BackSide})));
+[[0,14,0,16,.4,3],[0,14,-8,16,.4,3],[0,14,8,16,.4,3],[-16,6,0,.4,3,16],[16,6,0,.4,3,16],[0,6,-16,12,3,.4],[0,6,16,12,3,.4]].forEach(a=>{const m=new THREE.Mesh(new THREE.BoxGeometry(a[3],a[4],a[5]),new THREE.MeshBasicMaterial({color:new THREE.Color(5,5,5)}));m.position.set(a[0],a[1],a[2]);ES.add(m)});
+S.environment=new THREE.PMREMGenerator(R).fromScene(ES,.02).texture;
+/* ---- 전기실습실 구조 ---- */
+const ft=(()=>{const c=document.createElement('canvas');c.width=c.height=128;const k=c.getContext('2d');k.fillStyle='#232f42';k.fillRect(0,0,128,128);k.fillStyle='#1a2536';k.fillRect(0,0,64,64);k.fillRect(64,64,64,64);const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(5,4);t.encoding=THREE.sRGBEncoding;return t})();
+const fm=M(0xffffff,.3,.32);fm.map=ft;box(10,.1,8,fm,0,-.05,0);box(10,.1,8,M(0x0c1626,0,.9),0,4.05,0);
+const wallM=M(0x253852,0,.75);
+box(10,4,.1,wallM,0,2,-4.05);box(.1,4,8,wallM,-5.05,2,0);box(.1,4,8,wallM,5.05,2,0);box(10,4,.1,wallM,0,2,4.05);
+box(10,.14,.04,M(0x4de2d1,0,.5,0x1d8077),0,.3,-3.99);box(10,.5,.04,M(0x16273d,.3,.6),0,.25,-3.985);
+const sk=(()=>{const c=document.createElement('canvas');c.width=64;c.height=16;const k=c.getContext('2d');k.fillStyle='#111';k.fillRect(0,0,64,16);k.fillStyle='#ffd400';for(let i=-16;i<80;i+=16){k.beginPath();k.moveTo(i,16);k.lineTo(i+8,16);k.lineTo(i+16,0);k.lineTo(i+8,0);k.fill()}const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(22,1);t.encoding=THREE.sRGBEncoding;return t})();
+const strip=new THREE.Mesh(new THREE.PlaneGeometry(5.6,.22),new THREE.MeshStandardMaterial({map:sk,roughness:.5}));strip.rotation.x=-Math.PI/2;strip.position.set(0,.012,-2.2);S.add(strip);
+box(4.4,.02,.9,M(0x0b0f15,0,.9),0,.015,-1.55);lab('절연 매트  INSULATING MAT',1.8,0,.03,-1.55,'#ffd400').rotation.x=-Math.PI/2;
+/* 천장 케이블 트레이·배관 */
+[-1.4,1.4].forEach(x=>{box(.45,.06,8,dsteel(),x,3.8,0);for(let z=-3.8;z<=3.8;z+=.4)box(.45,.03,.05,steel(),x,3.84,z)});
+[-2.65,2.65].forEach(x=>cylY(.04,.9,chrome(),x,3.55,-3.95));cylX(.04,9.6,chrome(),0,3.85,-3.96);
+/* 형광등 */
+const gt=(()=>{const c=document.createElement('canvas');c.width=c.height=128;const k=c.getContext('2d'),gr=k.createRadialGradient(64,64,0,64,64,64);gr.addColorStop(0,'rgba(225,238,255,.9)');gr.addColorStop(1,'rgba(225,238,255,0)');k.fillStyle=gr;k.fillRect(0,0,128,128);return new THREE.CanvasTexture(c)})();
+const glowM=new THREE.MeshBasicMaterial({map:gt,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,opacity:.5});
+const tubeM=M(0xffffff,0,.3,0xffffff),PL=[];
+function fixture(x,z,len,tx,ty,tz,m){box(len+.3,.06,.4,steel(),x,3.97,z);box(len,.05,.08,tubeM,x,3.92,z-.1);box(len,.05,.08,tubeM,x,3.92,z+.1);
+ const gl=new THREE.Mesh(new THREE.PlaneGeometry(len+1.4,1.8),glowM);gl.rotation.x=Math.PI/2;gl.position.set(x,3.88,z);S.add(gl);
+ const l=new THREE.SpotLight(0xdce9ff,1,15,1.05,.7,1);l.position.set(x,3.85,z);l.target.position.set(tx,ty,tz);l.userData.m=m;S.add(l,l.target);PL.push(l)}
+[-2.6,2.6].forEach(x=>{fixture(x,-2,2.3,x*1.4,1.3,-3.9,1.2);fixture(x,.5,2.3,x,0,.5,1);fixture(x,3,2.3,x,0,3,.8)});
+fixture(0,-3,4.2,0,1.9,-3.8,1.7);
+const amb=new THREE.HemisphereLight(0xaabbdd,0x223344,.08);S.add(amb);
+/* ---- 문 (좌: 인터록 / 우: 자동기동) ---- */
+function door(x,c,url,t){const g=new THREE.Group();g.position.set(x,0,-3.93);S.add(g);
+ const led=new THREE.MeshBasicMaterial({color:c,toneMapped:false});
+ box(1.7,2.9,.08,chrome(),0,1.45,-.02,g);box(1.76,.06,.1,led,0,2.93,0,g);box(.06,2.9,.1,led,-.88,1.45,0,g);box(.06,2.9,.1,led,.88,1.45,0,g);
+ const d=box(1.4,2.7,.1,M(c,.5,.3,c,.3),0,1.35,.04,g);d.userData={act:()=>{location.href=url},hl:.3,door:1};IX.push(d);
+ box(.06,.34,.12,chrome(),.52,1.25,.12,g);box(.7,.8,.02,M(0xbfe0ff,.2,.1,0x6fb0ff,.7),0,1.9,.1,g);
+ lab(t,2.3,x,3.4,-3.9,'#ffffff','#08203a');box(2.3,.05,.03,led,x,3.1,-3.9);
+ lab('CLICK · ENTER',1.1,x,.7,-3.83,'#ffffff');
+ const pl=new THREE.PointLight(c,.9,4);pl.position.set(x,2.3,-3.1);S.add(pl);
+ const fg=new THREE.Mesh(new THREE.PlaneGeometry(2.4,1.8),new THREE.MeshBasicMaterial({map:gt,color:c,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,opacity:.7}));fg.rotation.x=-Math.PI/2;fg.position.set(x,.02,-3.1);S.add(fg)}
+door(-3.65,0x2f8bff,'interlockLab.html','가상 인터록 실습실');
+door(3.65,0x22d68a,'autoStartLab.html','자동기동 실습실');
+lab('전기 실습실  ELECTRICAL LAB',2.2,0,3.55,-3.97,'#4de2d1','#08121f');
+/* ---- 실습 장비/가구 ---- */
+const phen=M(0x2c425a,.4,.45);
+function scrTex(f){const c=document.createElement('canvas');c.width=256;c.height=192;const k=c.getContext('2d');f(k);const t=new THREE.CanvasTexture(c);t.encoding=THREE.sRGBEncoding;return t}
+const wave=scrTex(k=>{k.fillStyle='#061a10';k.fillRect(0,0,256,192);k.strokeStyle='#0f4d2c';for(let i=0;i<=8;i++){k.beginPath();k.moveTo(i*32,0);k.lineTo(i*32,192);k.moveTo(0,i*24);k.lineTo(256,i*24);k.stroke()}k.strokeStyle='#3dff8a';k.lineWidth=3;k.beginPath();for(let x=0;x<256;x++){const y=96+Math.sin(x/12)*50;x?k.lineTo(x,y):k.moveTo(x,y)}k.stroke()});
+[-1,1].forEach(s=>{const x=s*4.1,ry=-s*Math.PI/2;
+ box(1.1,.06,3.4,phen,x,.76,.4);box(1.1,.02,.02,chrome(),x-s*.55,.8,.4);
+ [-1,1].forEach(a=>[-1,1].forEach(b=>box(.06,.73,.06,steel(),x+a*.5,.37,.4+b*1.6)));
+ box(.05,1.3,2.6,M(0x1b3350,.3,.4,0x0d2036),s*4.98,2.2,.4);box(.06,.05,2.7,chrome(),s*4.97,2.88,.4);box(.06,.05,2.7,chrome(),s*4.97,1.52,.4);
+ [['전기실습실 안전수칙',2.5,'#ffd166'],['전원 OFF · 무전압 확인 후 결선',2.5,'#ffffff'],['⚡ 감전 주의 ⚡',2.0,'#ff6577']].forEach((a,i)=>{const m=lab(a[0],a[1],s*4.94,2.62-i*.4,.4,a[2]);m.rotation.y=ry});
+ box(.5,1.9,1.2,steel(),s*4.72,.95,-2.4);for(let i=0;i<6;i++)box(.02,.03,.8,M(0x10161f,.5,.5),s*4.46,1.6+i*.06,-2.4);box(.02,.02,1.2,chrome(),s*4.46,.95,-2.4);
+ cylY(.09,.5,plas(0xd62828,.3),s*4.9,.3,-1.5+s*0);cylY(.04,.1,chrome(),s*4.9,.6,-1.5)});
+// 좌측 작업대: 3상 유도전동기 + 전원공급기
+box(.7,.04,.4,dsteel(),-4.1,.81,.5);cylX(.16,.5,steel(),-4.1,1.0,.5);for(let i=-2;i<=2;i++)cylX(.175,.025,dsteel(),-4.1+i*.09,1.0,.5);
+cylX(.03,.2,chrome(),-3.75,1.0,.5);box(.18,.1,.16,dsteel(),-4.1,1.2,.5);cylX(.17,.03,M(0x20252c,.8,.4),-4.37,1.0,.5);
+box(.5,.28,.4,steel(),-4.1,.95,-.7);box(.01,.1,.2,M(0x061a10,0,.3,0x33ff88,.9),-3.84,1.0,-.7);
+[-.1,.1].forEach(z=>cylX(.035,.05,chrome(),-3.83,.9,-.7+z));cylX(.03,.04,plas(0xd62828),-3.83,.97,-.55);cylX(.03,.04,plas(0x111111),-3.83,.97,-.85);
+// 우측 작업대: 오실로스코프 + 멀티미터
+box(.5,.38,.45,M(0x39485b,.8,.35),4.1,.99,-.5);const sc=new THREE.Mesh(new THREE.PlaneGeometry(.3,.22),new THREE.MeshBasicMaterial({map:wave,toneMapped:false}));sc.rotation.y=-Math.PI/2;sc.position.set(3.84,1.03,-.5);S.add(sc);
+[-.13,0,.13].forEach(z=>cylX(.025,.04,chrome(),3.84,.88,-.5+z));
+box(.12,.36,.26,plas(0xf2c200),4.1,.97,.9);box(.01,.1,.18,M(0x061a10,0,.3,0x9dffb0,.8),4.035,1.06,.9);cylX(.045,.03,chrome(),4.035,.94,.9);
+/* ---- 실습대 + 금속 패널 ---- */
+box(5.4,.08,1.5,phen,0,.76,-3.2);box(5.4,.02,.02,chrome(),0,.8,-2.45);
+[[-2.6,-2.6],[2.6,-2.6],[-2.6,-3.7],[2.6,-3.7]].forEach(p=>box(.08,.72,.08,steel(),p[0],.36,p[1]));
+box(5,2.35,.12,M(0x8793a0,1,.38),0,1.97,-3.86);
+[[0,3.145,5.08,.06],[0,.795,5.08,.06]].forEach(a=>box(a[2],a[3],.16,chrome(),a[0],a[1],-3.84));[-2.5,2.5].forEach(x=>box(.06,2.4,.16,chrome(),x,1.97,-3.84));
+[[-2.4,3.05],[2.4,3.05],[-2.4,.9],[2.4,.9]].forEach(p=>cyl(.04,.04,.03,chrome(),p[0],p[1],-3.79));
+lab('자기유지 기동·정지 회로 실습판',2.0,0,3.35,-3.85,'#ffd166','#08121f');
+const cb=(x,y,w,h,mat)=>{box(w,h,.14,mat,x,y,-3.8);box(w+.04,.02,.15,chrome(),x,y+h/2,-3.8);box(w+.04,.02,.15,chrome(),x,y-h/2,-3.8)};
+const hitM=new THREE.MeshBasicMaterial({visible:false}),ringG=new THREE.TorusGeometry(.1,.014,8,28),ringM=new THREE.MeshBasicMaterial({color:0x4de2d1,toneMapped:false});
+function term(id,x,y,l){const m=cyl(.07,.07,.08,M(0xffd166,1,.2,0x553a00),x,y,-3.7);m.userData.term=id;IX.push(m);
+ const h=cyl(.12,.12,.12,hitM,x,y,-3.7);h.userData.term=id;IX.push(h);
+ const r=new THREE.Mesh(ringG,ringM);r.position.set(x,y,-3.72);S.add(r);box(.1,.016,.02,M(0x222222,.5,.5),x,y,-3.655);
+ T[id]={p:new THREE.Vector3(x,y,-3.64),m};lab(l,.3,x,y-.15,-3.725,'#ffd166','#0a1322')}
+const tag=(t,w,x,y)=>lab(t,w,x,y,-3.725,'#fff','#0a1322dd');
+// QF
+cb(-1.9,2.55,.7,.6,M(0x6f7d8c,1,.3));tag('QF 차단기',.7,-1.9,2.93);box(.2,.4,.02,chrome(),-1.9,2.55,-3.72);
+const lever=box(.12,.26,.1,plas(0x111111),-1.9,2.55,-3.69);lever.userData.act=()=>setQF(!st.qf);IX.push(lever);
+term('L',-2.05,2.13,'L');term('N',-1.75,2.13,'N');
+// PB0 STOP(b)
+cb(-1,2.55,.6,.6,dsteel());tag('PB0 STOP(b)',.8,-1,2.93);cyl(.2,.2,.06,chrome(),-1,2.55,-3.7);
+const cap0=cyl(.16,.16,.08,plas(0xe01b1b),-1,2.55,-3.7);cap0.userData.pb='pb0';IX.push(cap0);
+term('p0a',-1.15,2.13,'1');term('p0b',-.85,2.13,'2');
+// OL
+cb(-.1,2.55,.7,.6,M(0x8aa0b8,1,.3));tag('OL 과부하',.7,-.1,2.93);cyl(.14,.14,.05,chrome(),-.22,2.58,-3.71);
+const olb=cyl(.07,.07,.06,plas(0xe01b1b),.12,2.58,-3.7);olb.userData.act=()=>setOL(!st.ol);IX.push(olb);
+term('oa',-.25,2.13,'95');term('ob',.05,2.13,'96');
+// PB1 START(a)
+cb(.8,2.55,.6,.6,dsteel());tag('PB1 START(a)',.8,.8,2.93);cyl(.2,.2,.06,chrome(),.8,2.55,-3.7);
+const cap1=cyl(.16,.16,.08,plas(0x12b34f),.8,2.55,-3.7);cap1.userData.pb='pb1';IX.push(cap1);
+term('p1a',.65,2.13,'3');term('p1b',.95,2.13,'4');
+// MC 전자접촉기
+cb(-.2,1.5,1.7,.8,M(0x5b7fae,1,.28));tag('MC 전자접촉기',1,-.2,1.98);
+box(.5,.3,.02,M(0x10161f,.3,.4),.45,1.5,-3.725);const plg=box(.34,.2,.05,plas(0xe0a526,.3),.45,1.5,-3.7);
+lab('코일 A1-A2',.5,-.75,1.5,-3.725,'#ffffff','#0a1322aa');
+term('A1',-.9,1.88,'A1');term('A2',-.6,1.88,'A2');term('c13',-.9,1.02,'13');term('c14',-.65,1.02,'14');term('c21',0,1.02,'21');term('c22',.25,1.02,'22');
+// 표시등
+const lensG=M(0x0f5a30,0,.1),lensR=M(0x6a1212,0,.1);
+cb(1.7,2.55,.5,.6,dsteel());tag('PL-G 운전',.6,1.7,2.93);cyl(.2,.2,.06,chrome(),1.7,2.58,-3.7);cyl(.15,.15,.1,lensG,1.7,2.58,-3.69);
+cb(1.7,1.55,.5,.6,dsteel());tag('PL-R 정지',.6,1.7,1.93);cyl(.2,.2,.06,chrome(),1.7,1.58,-3.7);cyl(.15,.15,.1,lensR,1.7,1.58,-3.69);
+term('g1',1.55,2.13,'G1');term('g2',1.85,2.13,'G2');term('r1',1.55,1.13,'R1');term('r2',1.85,1.13,'R2');
+const lG=new THREE.PointLight(0x33ff88,0,2.5);lG.position.set(1.7,2.58,-3.3);S.add(lG);
+const lR=new THREE.PointLight(0xff3333,0,2.5);lR.position.set(1.7,1.58,-3.3);S.add(lR);
+/* ---- 회로 시뮬레이션 ---- */
+const IDS=Object.keys(T);
+const st={qf:false,pb0:0,pb1:0,ol:false,mc:false};
+function calc(s,mc,ws){const P={};IDS.forEach(i=>P[i]=i);const f=x=>P[x]===x?x:(P[x]=f(P[x]));const E=ws.slice();
+ const u=(a,b)=>{E.push([a,b]);P[f(a)]=f(b)};ws.forEach(w=>{P[f(w[0])]=f(w[1])});
+ if(!s.pb0)u('p0a','p0b');if(!s.ol)u('oa','ob');if(s.pb1)u('p1a','p1b');if(mc)u('c13','c14');else u('c21','c22');
+ const short=s.qf&&f('L')===f('N');
+ const on=(a,b)=>s.qf&&!short&&((f(a)===f('L')&&f(b)===f('N'))||(f(a)===f('N')&&f(b)===f('L')));
+ return{f,E,short,mc:on('A1','A2'),g:on('g1','g2'),r:on('r1','r2')}}
+function bfs(src,E){const A={},d={};E.forEach(e=>{(A[e[0]]=A[e[0]]||[]).push(e[1]);(A[e[1]]=A[e[1]]||[]).push(e[0])});
+ src.forEach(s=>d[s]=0);const q=[...src];while(q.length){const x=q.shift();(A[x]||[]).forEach(y=>{if(d[y]==null){d[y]=d[x]+1;q.push(y)}})}return d}
+/* ---- 배선 ---- */
+const W=[],PAL=['#ff0000','#ffe600','#00d63a','#0066ff','#ff7a00','#ff00aa','#00c8ff','#8a00ff','#00ffa0','#ffffff'];
+const dotG=new THREE.SphereGeometry(.04,10,10);
+function addWire(a,b){if(a===b||W.some(w=>(w.a===a&&w.b===b)||(w.a===b&&w.b===a)))return false;
+ const pa=T[a].p,pb=T[b].p,mid=pa.clone().add(pb).multiplyScalar(.5);mid.z+=.1+.045*(W.length%6);mid.y-=.05;
+ const cv=new THREE.CatmullRomCurve3([pa,pa.clone().add(new THREE.Vector3(0,0,.06)),mid,pb.clone().add(new THREE.Vector3(0,0,.06)),pb]);
+ const col=new THREE.Color(PAL[W.length%PAL.length]);
+ const mat=new THREE.MeshStandardMaterial({color:col,roughness:.4,metalness:0,emissive:col,emissiveIntensity:.35,toneMapped:false});
+ const mesh=new THREE.Mesh(new THREE.TubeGeometry(cv,28,.03,8),mat);S.add(mesh);
+ const dots=[0,1,2,3,4].map(()=>{const d=new THREE.Mesh(dotG,new THREE.MeshBasicMaterial({color:0xffd23f}));d.visible=false;S.add(d);return d});
+ W.push({a,b,cv,mesh,dots,dir:0,kind:0});return true}
+function delWire(w){S.remove(w.mesh);w.dots.forEach(d=>S.remove(d));W.splice(W.indexOf(w),1)}
+const ANS=[['L','p0a'],['p0b','oa'],['ob','p1a'],['ob','c13'],['p1b','A1'],['c14','A1'],['A2','N'],['A1','g1'],['g2','N'],['L','c21'],['c22','r1'],['r2','N']];
+/* ---- 상태 갱신 ---- */
+let note='';
+function msg(t,c){$('msg').innerHTML=t;$('msg').style.color=c||'#9eb1ca'}
+function refresh(){const ws=W.map(w=>[w.a,w.b]);let m=st.mc;
+ for(let i=0;i<5;i++)m=calc(st,m,ws).mc;st.mc=m;let r=calc(st,m,ws);
+ if(r.short){st.qf=false;st.mc=false;$('qf').checked=false;msg('⚠ 단락! L과 N이 접점으로 직결되어 QF가 차단되었습니다. 배선을 확인하세요.','#ff8a8a');r=calc(st,false,ws)}
+ const loads=[['A1','A2',r.mc],['g1','g2',r.g],['r1','r2',r.r]].filter(l=>l[2]),Ls=[],Ns=[];
+ loads.forEach(l=>{if(r.f(l[0])===r.f('L')){Ls.push(l[0]);Ns.push(l[1])}else{Ls.push(l[1]);Ns.push(l[0])}});
+ const d1=bfs(['L'],r.E),d2=bfs(Ls,r.E),d3=bfs(['N'],r.E),d4=bfs(Ns,r.E);
+ W.forEach(w=>{w.dir=0;if(!loads.length)return;
+  [[w.a,w.b,1],[w.b,w.a,-1]].forEach(([x,y,s])=>{
+   if(d1[x]!=null&&d1[y]===d1[x]+1&&d2[y]===d2[x]-1){w.dir=s;w.kind=0}
+   else if(d3[x]!=null&&d3[y]===d3[x]-1&&d4[y]===d4[x]+1){w.dir=s;w.kind=1}})});
+ W.forEach(w=>w.dots.forEach(d=>d.material.color.set(w.kind?0x55e0ff:0xffd23f)));
+ st.g=r.g;st.r=r.r;
+ $('stt').innerHTML=`QF: <b>${st.qf?'ON':'OFF'}</b> · MC: <b style="color:${st.mc?'#4ade80':'#aab'}">${st.mc?'여자(자기유지)':'소자'}</b><br>운전등(녹) ${r.g?'🟢 점등':'⚫ 소등'} · 정지등(적) ${r.r?'🔴 점등':'⚫ 소등'}${st.ol?'<br><span style="color:#ffb86b">OL 트립: 95-96 개방</span>':''}`}
+function setQF(v){st.qf=v;$('qf').checked=v;lever.rotation.z=v?-.5:.5;refresh()}
+function setOL(v){st.ol=v;$('ol').checked=v;refresh()}
+$('qf').onchange=e=>setQF(e.target.checked);$('ol').onchange=e=>setOL(e.target.checked);
+function hold(id,k){const b=$(id);b.onpointerdown=()=>{st[k]=1;refresh()};b.onpointerup=b.onpointerleave=()=>{if(st[k]){st[k]=0;refresh()}}}
+hold('b1','pb1');hold('b0','pb0');
+addEventListener('pointerup',()=>{if(st.pb0||st.pb1){st.pb0=st.pb1=0;refresh()}});
+$('und').onclick=()=>{if(W.length)delWire(W[W.length-1]);sel(null);refresh()};
+$('clr').onclick=()=>{while(W.length)delWire(W[0]);sel(null);refresh();msg('배선을 모두 지웠습니다. 단자를 차례로 클릭해 다시 연결하세요.')};
+$('ans').onclick=()=>{while(W.length)delWire(W[0]);ANS.forEach(p=>addWire(p[0],p[1]));refresh();msg('정답 배선입니다.<br>L→PB0(1-2)→OL(95-96)→[PB1(3-4) ∥ MC 13-14]→A1, A2→N<br>운전등: A1→G1, G2→N / 정지등: L→21-22→R1, R2→N')};
+$('chk').onclick=()=>{const ws=W.map(w=>[w.a,w.b]);let m=false;
+ const o=(p0,p1)=>{let r;for(let i=0;i<5;i++){r=calc({qf:true,pb0:p0,pb1:p1,ol:false},m,ws);m=r.mc}return r};
+ const r1=o(0,0),r2=o(0,1),r3=o(0,0),r4=o(1,0);
+ if([r1,r2,r3,r4].some(r=>r.short))return msg('⚠ 단락 배선이 있습니다. L과 N이 직결되는 경로를 확인하세요.','#ff8a8a');
+ const ck=[[!r1.mc&&r1.r&&!r1.g,'대기: MC 소자, 정지등 점등'],[r2.mc&&r2.g&&!r2.r,'START 누름: MC 여자, 운전등 점등'],[r3.mc&&r3.g,'START 놓음: 자기유지로 MC 유지'],[!r4.mc&&r4.r&&!r4.g,'STOP 누름: MC 소자, 정지등 점등']];
+ const bad=ck.filter(c=>!c[0]);
+ bad.length?msg('✖ 미완성:<br>'+bad.map(c=>'· '+c[1]).join('<br>'),'#ffb86b'):msg('✔ 자기유지 회로가 정상 동작합니다! QF를 켜고 START/STOP을 눌러 보세요.','#4ade80')};
+/* ---- 조명 ---- */
+let flick=1.4;function setBright(v){const k=v/100;tubeM.emissiveIntensity=2*k;glowM.opacity=.15+.45*k;PL.forEach(l=>l.intensity=1.4*k*l.userData.m);amb.intensity=.02+.06*k}
+$('br').oninput=e=>{setBright(e.target.value);flick=0};
+/* ---- 카메라/입력 ---- */
+const cam={yaw:0,pit:.1,dist:6.6,tx:0,ty:1.8,tz:-3.8},g={...cam};
+$('v1').onclick=()=>Object.assign(g,{yaw:0,pit:.1,dist:6.6,ty:1.8});
+$('v2').onclick=()=>Object.assign(g,{yaw:0,pit:.05,dist:3.7,ty:1.95});
+function resize(){R.setSize(innerWidth,innerHeight);C.aspect=innerWidth/innerHeight;
+ const open=$('ui').style.display!=='none',off=(open&&innerWidth>700)?($('ui').offsetWidth+20)/2:0;
+ if(off)C.setViewOffset(innerWidth,innerHeight,-off,0,innerWidth,innerHeight);else C.clearViewOffset();C.updateProjectionMatrix()}
+$('tg').onclick=()=>{const u=$('ui');u.style.display=u.style.display==='none'?'block':'none';$('tg').textContent=u.style.display==='none'?'조작판 ▶':'조작판 ◀';resize()};
+addEventListener('resize',resize);
+const ray=new THREE.Raycaster(),mv=new THREE.Vector2();let selT=null,drag=null,downObj=null,hov=null;
+function pick(e){const r=R.domElement.getBoundingClientRect();mv.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);ray.setFromCamera(mv,C);const h=ray.intersectObjects(IX,false)[0];return h&&h.object}
+function sel(id){if(selT){T[selT].m.material.emissive.set(0x553a00);T[selT].m.scale.setScalar(1)}selT=id;if(id){T[id].m.material.emissive.set(0xff8800);T[id].m.scale.setScalar(1.4)}}
+R.domElement.addEventListener('pointerdown',e=>{const o=pick(e);downObj=o;
+ if(o&&o.userData.pb){st[o.userData.pb]=1;refresh()}else if(!o)drag={x:e.clientX,y:e.clientY}});
+R.domElement.addEventListener('pointermove',e=>{if(drag){g.yaw=Math.max(-1.2,Math.min(1.2,g.yaw-(e.clientX-drag.x)*.005));g.pit=Math.max(-.1,Math.min(.8,g.pit+(e.clientY-drag.y)*.004));drag={x:e.clientX,y:e.clientY};return}
+ const o=pick(e);R.domElement.style.cursor=o?'pointer':'grab';
+ if(o!==hov){if(hov&&hov.userData.hl)hov.material.emissiveIntensity=hov.userData.hl;hov=o;if(o&&o.userData.door)o.material.emissiveIntensity=.9}});
+addEventListener('pointerup',e=>{drag=null;const o=downObj;downObj=null;if(!o)return;
+ if(o.userData.term){const id=o.userData.term;if(!selT)sel(id);else if(selT===id)sel(null);else{const a=selT;sel(null);if(addWire(a,id)){refresh();msg(`배선: ${a} ↔ ${id} (${W.length}개)`)}}}
+ else if(o.userData.act)o.userData.act()});
+R.domElement.addEventListener('wheel',e=>{g.dist=Math.max(2.5,Math.min(9,g.dist+e.deltaY*.004));e.preventDefault()},{passive:false});
+/* ---- 애니메이션 ---- */
+const clk=new THREE.Clock();let tm=0;
+function loop(){requestAnimationFrame(loop);const dt=clk.getDelta();tm+=dt;
+ if(flick<1.3){flick+=dt;const k=$('br').value/100,on=flick>1?1:(Math.random()>.45?1:.15);tubeM.emissiveIntensity=2*k*on;glowM.opacity=(.15+.45*k)*on;PL.forEach(l=>l.intensity=1.4*k*on*l.userData.m)}
+ else if(flick<2){flick=2;setBright($('br').value)}
+ for(const k of ['yaw','pit','dist','ty'])cam[k]+=(g[k]-cam[k])*.1;
+ C.position.set(cam.tx+cam.dist*Math.sin(cam.yaw)*Math.cos(cam.pit),cam.ty+cam.dist*Math.sin(cam.pit),cam.tz+cam.dist*Math.cos(cam.yaw)*Math.cos(cam.pit));C.lookAt(cam.tx,cam.ty,cam.tz);
+ cap0.position.z=st.pb0?-3.75:-3.7;cap1.position.z=st.pb1?-3.75:-3.7;olb.position.z=st.ol?-3.73:-3.7;
+ plg.position.y=1.5+(st.mc?.1:0);plg.material.emissive.set(st.mc?0x884400:0);
+ const gl=st.qf&&st.g,rl=st.qf&&st.r;lensG.emissive.set(gl?0x33ff88:0);lensG.emissiveIntensity=gl?1.4:0;lensR.emissive.set(rl?0xff3333:0);lensR.emissiveIntensity=rl?1.4:0;
+ lG.intensity=gl?1:0;lR.intensity=rl?1:0;
+ W.forEach(w=>{const on=w.dir!==0;w.mesh.material.emissiveIntensity=on?.7:.35;
+  w.dots.forEach((d,i)=>{d.visible=on;if(on){const t=((tm*.55+i/5)%1);d.position.copy(w.cv.getPoint(w.dir>0?t:1-t))}})});
+ R.render(S,C)}
+setBright(85);flick=0;setQF(false);refresh();resize();
+msg('① 금색 단자 두 개를 차례로 클릭해 배선 → ② <b>회로 점검</b> → ③ QF ON 후 START/STOP 캡을 눌러보세요. 막히면 <b>정답 배선</b>을 눌러 비교하세요.<br>양쪽 <b>문</b>을 클릭하면 다른 실습실로 이동합니다.');
+loop();
+</script></body></html>

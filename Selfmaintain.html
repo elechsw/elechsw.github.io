@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>11월 4일 전기 캡스톤 - 자기유지 기동·정지 회로</title>
+<style>
+:root{--navy:#10243a;--blue:#1769aa;--cyan:#eaf5fb;--ink:#1e293b;--muted:#64748b;--line:#d8e1ea;--green:#15945b;--red:#d33b3b;--gold:#f2b544}
+*{box-sizing:border-box}body{margin:0;background:#f3f6fa;color:var(--ink);font-family:Arial,"Malgun Gothic","맑은 고딕",sans-serif;line-height:1.65}
+header{background:linear-gradient(120deg,#10243a,#1769aa);color:white;padding:34px 22px}
+.wrap{max-width:1100px;margin:auto;padding:0 18px}
+.kicker{font-size:13px;letter-spacing:.12em;opacity:.85}h1{font-size:clamp(27px,4vw,42px);line-height:1.2;margin:8px 0}header p{max-width:760px;margin:12px 0 0;color:#e5f2ff}
+main{padding:24px 0 60px}.panel{background:white;border:1px solid var(--line);border-radius:16px;padding:22px;margin:16px 0;box-shadow:0 5px 18px #10243a0a}
+h2{font-size:23px;margin:0 0 12px;color:var(--navy)}h3{font-size:17px;margin:0 0 8px;color:#174a75}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px}
+.tile{background:#f7fafc;border:1px solid var(--line);border-radius:12px;padding:15px}
+.tag{display:inline-block;background:#e5f2fb;color:#14588a;border-radius:999px;padding:3px 10px;font-size:12px;font-weight:bold}
+ul{padding-left:20px;margin:8px 0}li{margin:4px 0}.muted{color:var(--muted);font-size:13px}
+table{width:100%;border-collapse:collapse;font-size:14px}th,td{border-bottom:1px solid var(--line);padding:10px;text-align:left;vertical-align:top}th{background:#f2f7fb;color:#174a75}
+.diagram{overflow-x:auto;background:#fbfdff;border:1px solid var(--line);border-radius:12px;padding:12px}
+.diagram svg{min-width:700px;width:100%;height:auto}
+.controls{display:flex;flex-wrap:wrap;gap:10px;margin:14px 0}
+button{border:0;border-radius:10px;padding:11px 18px;font-weight:bold;font-size:15px;cursor:pointer}
+.start{background:#168b57;color:white}.stop{background:#c93636;color:white}.reset{background:#e8eef4;color:#26384b}
+.status{display:flex;gap:14px;align-items:center;flex-wrap:wrap;background:#f6f9fc;border-radius:12px;padding:13px}
+.lamp{width:17px;height:17px;border-radius:50%;background:#b8c2cc;display:inline-block;border:2px solid #8795a3}
+.lamp.on.green{background:#19b86f;box-shadow:0 0 14px #19b86f88}.lamp.on.red{background:#e34a4a;box-shadow:0 0 14px #e34a4a88}
+.photo{width:100%;height:205px;object-fit:contain;background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px}
+.photo-card{border:1px solid var(--line);border-radius:13px;padding:12px;background:#fff}
+.photo-card h3{margin-top:10px}.photo-card a{font-size:12px;color:#1769aa}
+.callout{border-left:4px solid var(--gold);background:#fff9e9;padding:12px 15px;border-radius:8px}
+.good{color:var(--green);font-weight:bold}.danger{color:var(--red);font-weight:bold}
+footer{text-align:center;color:var(--muted);font-size:12px;padding:20px}
+@media print{body{background:white}.panel{box-shadow:none;break-inside:avoid}header{background:#10243a!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}.controls{display:none}}
+</style>
+</head>
+<body>
+<header><div class="wrap">
+<div class="kicker">ELECTRICAL CAPSTONE · 2026. 11. 04.</div>
+<h1>자기유지 기동·정지 회로 실습</h1>
+<p>푸시버튼과 전자접촉기를 이용해 기동·정지 및 자기유지 회로를 구성하고, 운전·정지 표시등으로 동작 상태를 확인한다.</p>
+</div></header>
+<main class="wrap">
+<section class="panel">
+<h2>1. 수업 목표 및 학습 포인트</h2>
+<div class="grid">
+<div class="tile"><span class="tag">목표 01</span><h3>회로 구성</h3><p>정지용 b접점, 기동용 a접점, 전자접촉기 코일과 보조 a접점을 올바르게 연결한다.</p></div>
+<div class="tile"><span class="tag">목표 02</span><h3>동작 원리</h3><p>기동 버튼을 놓아도 보조 a접점이 기동 버튼을 우회해 코일 전원을 유지하는 원리를 설명한다.</p></div>
+<div class="tile"><span class="tag">목표 03</span><h3>표시등 구현</h3><p>전자접촉기 동작 상태에 따라 녹색 운전등과 적색 정지등이 바뀌도록 구성한다.</p></div>
+</div>
+<ul><li>PB(Push Button): 순간 조작 스위치의 a접점(NO)과 b접점(NC) 구분</li><li>MC(Magnetic Contactor): 코일(A1-A2), 주접점, 보조접점(13-14 / 21-22) 이해</li><li>자기유지(Self-holding): MC 보조 a접점을 기동 버튼과 병렬로 연결</li><li>표시등(Pilot Lamp): 운전·정지 상태를 시각적으로 표시</li></ul>
+</section>
+
+<section class="panel">
+<h2>2. 필요 요소 및 풀네임</h2>
+<table>
+<thead><tr><th>기호</th><th>풀네임(영문)</th><th>한글 명칭 및 역할</th><th>일반 단자 예</th></tr></thead>
+<tbody>
+<tr><td>PB1</td><td>Push Button 1 (START)</td><td>기동 푸시버튼. 누르는 동안 접점이 닫히는 a접점(NO)을 사용한다.</td><td>13-14 또는 NO</td></tr>
+<tr><td>PB0</td><td>Push Button 0 (STOP)</td><td>정지 푸시버튼. 평상시 닫혀 있고 누르면 열리는 b접점(NC)을 사용한다.</td><td>11-12 또는 NC</td></tr>
+<tr><td>MC</td><td>Magnetic Contactor</td><td>전자접촉기. 코일에 전원이 공급되면 주접점과 보조접점이 연동해 동작한다.</td><td>A1-A2(코일), 13-14(NO), 21-22(NC)</td></tr>
+<tr><td>OL</td><td>Thermal Overload Relay</td><td>열동형 과부하 계전기. 과부하 시 제어회로를 차단하는 보호기기.</td><td>95-96(NC)</td></tr>
+<tr><td>PL-G</td><td>Green Pilot Lamp</td><td>녹색 운전 표시등. MC 여자 상태를 표시한다.</td><td>전원 정격에 맞는 단자</td></tr>
+<tr><tr><td>PL-R</td><td>Red Pilot Lamp</td><td>적색 정지 표시등. MC 소자 상태를 표시한다.</td><td>전원 정격에 맞는 단자</td></tr>
+<tr><tr><td>QF</td><td>Circuit Breaker</td><td>배선용 차단기. 회로의 단락·과전류 보호 및 전원 차단.</td><td>전원 사양에 맞게 선정</td></tr>
+<tr><tr><td>PS</td><td>Power Supply</td><td>제어전원 공급장치. 실습 장치와 코일 정격에 맞는 전압 공급.</td><td>예: 24 V AC/DC</td></tr>
+</tbody></table>
+<p class="muted">※ 단자 번호는 제조사·기종에 따라 다를 수 있으므로 실제 제품의 회로도와 명판을 먼저 확인한다. 13-14는 일반적인 보조 a접점, 21-22는 일반적인 보조 b접점 표기 예시다.</p>
+</section>
+
+<section class="panel">
+<h2>3. 자기유지 회로도 (제어회로 예시)</h2>
+<p>아래는 저전압 제어전원 기준의 개념 회로다. PB1 기동접점과 MC 보조 a접점(13-14)을 병렬로 연결하고, PB0 정지접점 및 OL 과부하 계전기 b접점(95-96)을 직렬로 둔다.</p>
+<div class="diagram">
+<svg viewBox="0 0 900 360" role="img" aria-label="자기유지 회로도">
+<defs><style>
+.w{stroke:#1769aa;stroke-width:4;fill:none;stroke-linecap:round;stroke-linejoin:round}.c{stroke:#26384b;stroke-width:3;fill:none}.t{font:16px Arial,sans-serif;fill:#1e293b}.s{font:13px Arial,sans-serif;fill:#64748b}.coil{fill:#eaf5fb;stroke:#1769aa;stroke-width:3}
+</style></defs>
+<text x="25" y="35" class="t" font-weight="bold">L / + 제어전원</text><text x="790" y="35" class="t" font-weight="bold">N / 0V</text>
+<path class="w" d="M65 55 V105 H125 M185 105 H240 M300 105 H350 M410 105 H470 M530 105 H620 V175 H720 V105 H820 V55"/>
+<path class="c" d="M125 88 V122 M185 88 V122"/><path class="c" d="M125 105 L185 105"/>
+<text x="105" y="78" class="s">PB0 STOP</text><text x="118" y="145" class="s">NC</text>
+<path class="c" d="M240 88 V122 M300 88 V122"/><path class="c" d="M240 105 L300 105"/>
+<text x="228" y="78" class="s">OL 95-96</text><text x="251" y="145" class="s">NC</text>
+<path class="w" d="M350 105 V165 H390 M450 165 H490 V105"/>
+<path class="c" d="M390 148 V182 M450 148 V182"/><path class="c" d="M390 165 L450 165"/>
+<text x="372" y="137" class="s">PB1 START</text><text x="397" y="203" class="s">NO</text>
+<path class="w" d="M350 105 V245 H390 M450 245 H490 V165"/>
+<path class="c" d="M390 228 V262 M450 228 V262"/><path class="c" d="M390 245 L450 245"/>
+<text x="365" y="218" class="s">MC 13-14</text><text x="402" y="284" class="s">NO 보조접점</text>
+<path class="w" d="M490 165 H620 V105"/>
+<path class="w" d="M620 105 V290 H675"/>
+<rect x="675" y="265" width="95" height="50" rx="9" class="coil"/><text x="722" y="296" text-anchor="middle" class="t" font-weight="bold">MC COIL</text>
+<text x="675" y="250" class="s">A1</text><text x="775" y="296" class="s">A2 → N/0V</text>
+<path class="w" d="M820 55 V290 H770"/>
+<text x="65" y="330" class="s">※ 운전등: MC 여자 시 점등(예: MC 보조 a접점 경유)</text>
+<text x="470" y="330" class="s">※ 정지등: MC 소자 시 점등(예: MC 보조 b접점 경유)</text>
+</svg>
+</div>
+<div class="callout"><b>회로 연결 핵심:</b> PB0(NC) → OL(95-96, NC) → [PB1(NO) ∥ MC 보조접점(13-14, NO)] → MC 코일(A1), 코일 A2는 제어전원 귀로에 연결한다. 표시등은 코일·접점 정격과 표시 방식에 맞게 별도 분기한다.</div>
+</section>
+
+<section class="panel">
+<h2>4. 동작 원리 단계별 이해</h2>
+<ol>
+<li><b>대기 상태:</b> PB0는 닫혀 있고 PB1은 열려 있다. MC 코일은 무여자 상태이며 적색 정지등이 켜진다.</li>
+<li><b>기동:</b> PB1을 누르면 MC 코일에 전류가 흐르고 MC가 여자된다.</li>
+<li><b>자기유지:</b> MC 보조 a접점(13-14)이 닫혀 PB1과 병렬 경로를 만든다. PB1에서 손을 떼어도 코일 전류가 유지된다.</li>
+<li><b>정지:</b> PB0를 누르면 직렬 제어회로가 열리고 MC 코일이 소자된다. 보조 a접점이 열리며 녹색 운전등이 꺼지고 적색 정지등이 켜진다.</li>
+<li><b>과부하:</b> OL이 동작하면 95-96 접점이 열려 코일 전원을 차단한다. 원인 확인 후 보호계전기 복귀 절차를 따른다.</li>
+</ol>
+</section>
+
+<section class="panel">
+<h2>5. 가상 동작 체험</h2>
+<p>아래 버튼은 실제 전기설비를 구동하지 않는 교육용 논리 시뮬레이션이다. 실제 결선 전에는 전원을 차단하고 지도교사의 확인을 받는다.</p>
+<div class="controls"><button class="start" id="start">기동 PB1 누르기</button><button class="stop" id="stop">정지 PB0 누르기</button><button class="reset" id="reset">초기화</button></div>
+<div class="status">
+<span><i id="greenLamp" class="lamp green"></i> 녹색 운전등</span>
+<span><i id="redLamp" class="lamp red on"></i> 적색 정지등</span>
+<strong id="state">상태: 정지( MC 소자 )</strong>
+</div>
+<p id="explain" aria-live="polite">대기 중입니다. 기동 버튼을 누르면 MC 코일이 여자되고 보조 a접점이 닫힙니다.</p>
+</section>
+
+<section class="panel">
+<h2>6. 실제 사용 모듈 사진 및 명칭</h2>
+<p class="muted">아래 사진은 제조사·교육장비 업체가 공개한 실제 제품/훈련장비 이미지 예시다. 수업 현장의 보유 모델과 외형·정격이 다를 수 있다.</p>
+<div class="grid">
+<div class="photo-card"><img class="photo" src="https://download.se.com/files?p_Doc_Ref=xald211h29h7_front&p_File_Type=rendition_1500_jpg" alt="녹색 START와 적색 STOP 푸시버튼 제어 스테이션"><h3>푸시버튼 스테이션</h3><p>Green START Push Button / Red STOP Push Button. 기동용 a접점(NO), 정지용 b접점(NC) 접점블록을 확인한다.</p><a href="https://www.se.com/us/en/product/XALD211H29H7/" target="_blank" rel="noopener">Schneider Electric 제품 정보</a></div>
+<div class="photo-card"><img class="photo" src="https://www.christiani.de/out/pictures/generated/product/1/665_665_70/98155-lerntafel-schuetz-mit-hilfskontakten-1.jpg.webp" alt="보조접점이 있는 전자접촉기 교육용 패널"><h3>전자접촉기 및 보조접점 교육 패널</h3><p>Magnetic Contactor with Auxiliary Contacts. 코일 A1/A2와 보조접점 단자, 주접점 단자 위치를 확인한다.</p><a href="https://www.christiani.de/ausbildung/elektro-automatisierung/ausbildungsinhalte/maschinen-und-antriebstechnik/lerntafel-schuetz-mit-hilfskontakten.html" target="_blank" rel="noopener">교육장비 제품 정보</a></div>
+<div class="photo-card"><img class="photo" src="https://i5.walmartimages.com/seo/Unique-Bargains-2-Pieces-AD16-22D-S-Green-Red-Pilot-Light-Panel-Indicator-22mm-110V-20mA_9ae1def3-0d46-4b2f-938b-972c38a769d5_1.dfa1de3f6f8e634996992bd0a1ef242e.jpeg?odnBg=FFFFFF&odnHeight=768&odnWidth=768" alt="녹색과 적색 패널 표시등"><h3>표시등</h3><p>Green / Red Pilot Lamp. 표시등 정격전압을 제어전원과 일치시키고 운전·정지 상태를 구분한다.</p><a href="https://www.walmart.com/ip/47614230" target="_blank" rel="noopener">제품 이미지 출처</a></div>
+<div class="photo-card"><img class="photo" src="https://cdn.shopify.com/s/files/1/0758/0185/products/LL_Electrical_Controls_Face-w500-h500_grande.png?v=1422642248" alt="전기 제어 실습 훈련 패널"><h3>전기 제어 실습 패널</h3><p>Electrical Controls Training Panel. 푸시버튼, 표시등, 전자접촉기 및 단자대가 배치된 실습장비 예시.</p><a href="https://www.learnlab.biz/products/electrical-motor-controls-training-system" target="_blank" rel="noopener">LearnLab 장비 정보</a></div>
+</div>
+</section>
+
+<section class="panel">
+<h2>7. 실습 순서 및 확인 사항</h2>
+<ol>
+<li>전원 차단 및 무전압 확인 후 부품의 정격전압·단자번호를 확인한다.</li>
+<li>PB0의 NC 접점과 OL 95-96을 직렬로 연결한다.</li>
+<li>PB1의 NO 접점과 MC 보조 NO(13-14)를 병렬로 연결한다.</li>
+<li>병렬 회로 출력을 MC 코일 A1에 연결하고 A2를 제어전원 귀로에 연결한다.</li>
+<li>운전등은 MC 여자 상태, 정지등은 MC 소자 상태에서 점등되도록 보조접점 등을 이용해 연결한다.</li>
+<li>지도교사 확인 후 지정된 안전한 저전압 실습전원으로 동작을 점검한다.</li>
+</ol>
+<div class="callout"><b>안전 유의:</b> 이 문서는 교육용 개념 자료이며 현장 결선 지시서가 아니다. 전원전압·코일전압·표시등 정격·보호기기 용량은 실제 장비 명판과 제조사 회로도를 기준으로 선정한다. 상용전원 결선은 자격 있는 지도자 감독 아래 실시한다.</div>
+</section>
+
+<section class="panel">
+<h2>8. 핵심 정리 및 평가 질문</h2>
+<ul>
+<li><b>핵심 1:</b> 자기유지는 MC 보조 a접점(13-14)을 기동 PB1과 병렬로 연결하여 구현한다.</li>
+<li><b>핵심 2:</b> 정지 PB0는 b접점(NC)을 사용하여 누르면 제어회로를 차단한다.</li>
+<li><b>핵심 3:</b> MC 코일(A1-A2)의 여자·소자에 따라 주접점과 보조접점이 연동한다.</li>
+<li><b>핵심 4:</b> 표시등은 운전·정지 상태를 구분하며, 반드시 정격전압을 확인한다.</li>
+</ul>
+<div class="grid">
+<div class="tile"><b>질문 1</b><p>기동 버튼에서 손을 떼어도 MC가 계속 여자되는 이유는?</p></div>
+<div class="tile"><b>질문 2</b><p>정지 버튼에 b접점(NC)을 사용하는 이유는?</p></div>
+<div class="tile"><b>질문 3</b><p>MC 보조 a접점 13-14의 역할은 무엇인가?</p></div>
+</div>
+</section>
+<footer>전기 캡스톤 수업 자료 · 2026년 11월 4일 · Selfmaintain.html</footer>
+</main>
+<script>
+let running=false;
+const $=id=>document.getElementById(id);
+function render(){
+ $('greenLamp').classList.toggle('on',running);
+ $('redLamp').classList.toggle('on',!running);
+ $('state').textContent=running?'상태: 운전( MC 여자 · 자기유지 )':'상태: 정지( MC 소자 )';
+ $('explain').textContent=running
+ ?'MC 코일에 전원이 공급된 상태입니다. MC 보조 a접점(13-14)이 닫혀 기동 버튼을 놓아도 코일 전류가 유지됩니다. 정지 PB0를 누르면 회로가 끊어집니다.'
+ :'MC 코일은 무여자 상태입니다. PB1을 누르면 기동되며, PB0를 누르면 자기유지가 해제됩니다.';
+}
+$('start').addEventListener('click',()=>{running=true;render()});
+$('stop').addEventListener('click',()=>{running=false;render()});
+$('reset').addEventListener('click',()=>{running=false;render()});
+render();
+</script>
+</body>
+</html>

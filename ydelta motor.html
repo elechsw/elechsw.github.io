@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>스타-델타 배선 3D 실습실</title>
+<style>
+:root{--fg:#14213d;--card:rgba(255,255,255,.93);--bd:#cfd6e4;--ac:#1f6feb;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--fg:#e8ecf4;--card:rgba(22,28,40,.93);--bd:#2c3547}}
+:root[data-theme="dark"]{--fg:#e8ecf4;--card:rgba(22,28,40,.93);--bd:#2c3547}
+html,body{height:100%;margin:0;background:#dde3ec;font-family:-apple-system,"Segoe UI","Noto Sans KR","Malgun Gothic",sans-serif;color:var(--fg);overflow:hidden}
+canvas{display:block;width:100%;height:100%;touch-action:none}
+.card{position:fixed;background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:10px 12px;font-size:13px}
+#top{left:10px;top:calc(10px + env(safe-area-inset-top,0px));font-weight:700;font-size:14px}
+#theory{right:10px;top:calc(10px + env(safe-area-inset-top,0px));cursor:pointer;color:#fff;background:var(--ac);border:0;font-weight:700}
+#hud{left:10px;right:10px;bottom:calc(10px + env(safe-area-inset-bottom,0px));display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+#hud button{border:1px solid var(--bd);background:transparent;color:var(--fg);border-radius:8px;padding:6px 10px;font-size:13px;cursor:pointer}
+#hud button.on{background:#2da44e;color:#fff;border-color:#2da44e}#hud button.off{background:#d1242f;color:#fff;border-color:#d1242f}
+#st{flex:1 1 100%;font-weight:600}#bar{height:6px;border-radius:3px;background:var(--bd);overflow:hidden;flex:1 1 100%}#bar i{display:block;height:100%;width:0;background:var(--ac)}
+#ov{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;padding:16px}
+#ov div{background:var(--card);color:var(--fg);max-width:520px;max-height:80%;overflow:auto;border-radius:14px;padding:18px 20px;line-height:1.65;font-size:14px}
+#ov h3{margin:0 0 8px}#ov button{margin-top:10px;background:var(--ac);color:#fff;border:0;border-radius:8px;padding:7px 14px;cursor:pointer}
+</style></head><body>
+<canvas id="c"></canvas>
+<div class="card" id="top">⚙ 스타-델타 배선 실습실</div>
+<button class="card" id="theory">이론 설명</button>
+<div class="card" id="res" style="display:none;left:10px;top:calc(58px + env(safe-area-inset-top,0px));max-width:320px;font-size:12px;line-height:1.5"></div>
+<div class="card" id="hud">
+<div id="st">배선 실습 — 노란 단자를 차례로 눌러 전선을 연결하세요</div>
+<div id="bar"><i></i></div>
+<button class="on" id="bOn">ON</button><button class="off" id="bOff">OFF</button>
+<label>Y 시간 <input type="range" id="tm" min="3" max="15" value="5"> <b id="tv">5</b>초</label>
+<label><input type="checkbox" id="il"> 인터록 제거(오결선 체험)</label>
+<span>전선색</span><button data-c="red" style="background:#d1242f;color:#fff">빨강</button><button data-c="white">흰색</button><button data-c="blue" style="background:#1f5fd0;color:#fff">파랑</button><button data-c="black" style="background:#222;color:#fff">검정</button><button id="bHint">힌트</button><button id="bCheck">결선 확인</button><button id="bGhost">정답 보기</button><button id="bUndo">되돌리기</button><button id="bClr">전체 지움</button><button data-v="all">전체</button><button data-v="panel">제어반</button><button data-v="main">주회로</button><button data-v="ctrl">제어회로</button><button data-v="motor">전동기</button>
+</div>
+<div id="ov"><div><h3>스타-델타 기동 이론</h3>
+<p><b>목적</b> 3상 유도전동기는 직입 기동 시 정격의 약 6~8배 전류가 흐릅니다. 기동 때만 Y(스타)로 결선하면 각 권선 전압이 1/√3 이 되어 기동전류와 토크가 약 1/3 로 줄어듭니다.</p>
+<p><b>동작 순서</b><br>① ON → MC + MC-Y 투입, 타이머(T) 동작, Y 기동<br>② 설정 시간 경과 → MC-Y 소자, MC-D 투입(Δ 운전)<br>③ OFF 또는 과부하(OL) → 전체 차단</p>
+<p><b>인터록</b> MC-Y 와 MC-D 가 동시에 투입되면 상간 단락이 납니다. 각 접촉기의 b접점을 상대 코일 회로에 직렬로 넣어 동시 투입을 막습니다. 아래 옵션으로 인터록을 제거하면 단락 사고를 체험할 수 있습니다.</p>
+<p><b>배선 실습</b> 노란 점(단자)을 하나 누르고 연결할 다른 단자를 누르면 전선이 이어집니다. 전선 색은 아래 버튼에서 고르고, 잘못 이은 선은 클릭하면 삭제됩니다. 주회로는 CB→MC→OL→전동기(U1·V1·W1)와 MC-Y(U2·V2·W2 단락), MC-D(Δ 결선), 제어회로는 OFF/ON, 접점, 인터록, 표시등 순서로 연결합니다. 막히면 힌트, 다 이었으면 결선 확인을 누르세요. 결선이 완료되어야 ON 버튼이 동작합니다.</p><p><b>조작</b> 화면 드래그: 시점 회전 / 휠: 확대·축소 / 제어반의 ON·OFF·CB 손잡이: 클릭 / 양쪽 문: 클릭하면 다른 실습실로 이동</p>
+<button id="cl">닫기</button></div></div>
+<script>window.onerror=function(m,s,l){var d=document.createElement('div');d.style.cssText='position:fixed;left:8px;right:8px;top:64px;background:#fff;color:#c00;padding:8px;font:12px monospace;z-index:9;border-radius:8px';d.textContent='오류: '+m+' (줄 '+l+')';document.body.appendChild(d)};</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+const T=THREE,$=id=>document.getElementById(id),cv=$('c');
+const R=new T.WebGLRenderer({canvas:cv,antialias:true});R.setPixelRatio(Math.min(window.devicePixelRatio||1,2));R.setClearColor(0xdde3ec);
+const scene=new T.Scene();scene.background=new T.Color(0xdde3ec);
+const cam=new T.PerspectiveCamera(50,1,.1,100);
+scene.add(new T.AmbientLight(0xffffff,.55),new T.HemisphereLight(0xffffff,0x8892a6,.6));
+[[-5,6.3,-2],[5,6.3,-2],[0,6.3,5]].forEach(a=>{const p=new T.PointLight(0xfff4e0,.55,28);p.position.set(a[0],a[1],a[2]);scene.add(p)});
+const dl=new T.DirectionalLight(0xffffff,.5);dl.position.set(2,5,9);scene.add(dl);
+const S=8/1448,PZ=-5.8,X=p=>(p-724)*S,Y=p=>3.4+(543-p)*S;
+const M=(c,o={})=>new T.MeshStandardMaterial({color:c,metalness:o.m??.15,roughness:o.r??.55,emissive:o.e||0});
+const tex=(w,h,f)=>{const k=document.createElement('canvas');k.width=w;k.height=h;f(k.getContext('2d'),w,h);return new T.CanvasTexture(k)};
+const add=(g,m,x,y,z)=>{const o=new T.Mesh(g,m);o.position.set(x,y,z);scene.add(o);return o};
+const BX=(w,h,d)=>new T.BoxGeometry(w,h,d);
+const CY=(r,h,s=24)=>{const g=new T.CylinderGeometry(r,r,h,s);g.rotateX(Math.PI/2);return g};
+const CX=(r,h,s=32)=>{const g=new T.CylinderGeometry(r,r,h,s);g.rotateZ(Math.PI/2);return g};
+const CHR=M(0xd5d9e0,{m:.45,r:.25}),DK=M(0x20232a,{r:.7}),BRS=M(0xc9a24a,{m:.5,r:.3});
+function scr(x,y,z,r=.05){add(CY(r,.04,14),CHR,x,y,z+.02);const b=add(BX(r*1.7,r*.28,.01),DK,x,y,z+.045);b.rotation.z=.6}
+function stk(t,w,h,x,y,z,fg,bg){fg=fg||'#222';bg=bg||'#f4f1e6';const m=new T.Mesh(new T.PlaneGeometry(w,h),new T.MeshBasicMaterial({map:tex(256,Math.max(16,Math.round(256*h/w)),(g,W,H)=>{g.fillStyle=bg;g.fillRect(0,0,W,H);g.fillStyle=fg;g.font='bold '+Math.round(H*.55)+'px sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText(t,W/2,H/2+2)})}));m.position.set(x,y,z);scene.add(m);return m}
+function lw(t,x,y,z,hh,c){hh=hh||.17;const k=document.createElement('canvas'),g=k.getContext('2d');g.font='bold 34px sans-serif';const w=Math.ceil(g.measureText(t).width)+26;k.width=w;k.height=56;
+g.fillStyle='rgba(255,255,255,.94)';g.fillRect(0,0,w,56);g.fillStyle=c||'#14213d';g.font='bold 34px sans-serif';g.textBaseline='middle';g.fillText(t,13,29);
+const m=new T.Mesh(new T.PlaneGeometry(hh*w/56,hh),new T.MeshBasicMaterial({map:new T.CanvasTexture(k)}));m.position.set(x,y,z);scene.add(m)}
+const lbl=(t,px,py,hh,c)=>lw(t,X(px),Y(py),PZ+.55,hh,c);
+// ===== room =====
+const room=new T.Mesh(new T.BoxGeometry(22,7,16),new T.MeshStandardMaterial({color:0xe9edf2,side:T.BackSide,roughness:.9}));room.position.set(0,3.5,2);scene.add(room);
+add(BX(22,1.1,.05),M(0x6f86a8),0,.55,-5.97);add(BX(.05,1.1,16),M(0x6f86a8),-10.97,.55,2);add(BX(.05,1.1,16),M(0x6f86a8),10.97,.55,2);
+add(BX(22,.15,.08),M(0x2f343d),0,.075,-5.95);
+const ft=tex(128,128,(g)=>{g.fillStyle='#c4cad6';g.fillRect(0,0,128,128);g.strokeStyle='#a3abbb';g.lineWidth=3;g.strokeRect(0,0,128,128)});ft.wrapS=ft.wrapT=T.RepeatWrapping;ft.repeat.set(11,8);
+const fl=add(new T.PlaneGeometry(22,16),new T.MeshStandardMaterial({map:ft,roughness:.3,metalness:.1}),0,.01,2);fl.rotation.x=-Math.PI/2;
+add(BX(9,.012,.14),M(0xf2c200),0,.015,-3.5);
+for(let i=-1;i<=1;i++)for(let j=0;j<2;j++){add(BX(4.2,.1,.5),M(0xcfd3da),i*7,6.93,-3+j*7);add(BX(4,.04,.3),new T.MeshBasicMaterial({color:0xffffff}),i*7,6.87,-3+j*7)}
+[-8.9,8.9].forEach(x=>{add(BX(3,.08,1),M(0x8a6a45,{r:.7}),x,.9,-3.3);[[-1.3,-.4],[1.3,-.4],[-1.3,.4],[1.3,.4]].forEach(a=>add(BX(.08,.86,.08),M(0x555b66,{m:.4}),x+a[0],.43,-3.3+a[1]))});
+add(CY(.16,.65),M(0xc8201e,{r:.4}),10.3,.5,-5.3).rotation.x=Math.PI/2;
+const sg=(t,x,ry,c)=>{const m=stk(t,2.6,.5,x,4.9,2,'#fff',c);m.rotation.y=ry};sg('전기 실습실',-10.9,Math.PI/2,'#1f4aa8');sg('감전 주의 · 배선 확인',10.9,-Math.PI/2,'#c9a000');
+// ===== cabinet =====
+add(BX(8.6,6.6,.2),M(0x9aa1ad,{m:.3}),0,3.4,PZ-.25);
+add(BX(8,6,.1),M(0xb5bbc4,{m:.2,r:.7}),0,3.4,PZ-.05);
+[[8.6,.3,0,6.55],[8.6,.3,0,.25],[.3,6.6,-4.15,3.4],[.3,6.6,4.15,3.4]].forEach(a=>add(BX(a[0],a[1],.45),M(0xcdd2da,{m:.3}),a[2],a[3],PZ+.1));
+const rt=tex(32,64,g=>{g.fillStyle='#8e96a3';g.fillRect(0,0,32,64);g.fillStyle='#2b2f37';g.fillRect(9,14,14,36)});rt.wrapS=rt.wrapT=T.RepeatWrapping;rt.repeat.set(1,48);
+[-3.72,3.72].forEach(x=>add(new T.PlaneGeometry(.26,5.8),new T.MeshBasicMaterial({map:rt}),x,3.4,PZ+.012));
+const dt=tex(32,16,g=>{g.fillStyle='#8c939f';g.fillRect(0,0,32,16);g.fillStyle='#2b2f37';g.fillRect(6,5,20,6)});dt.wrapS=dt.wrapT=T.RepeatWrapping;
+const rail=(py,a,b)=>{const t=dt.clone();t.needsUpdate=true;t.wrapS=t.wrapT=T.RepeatWrapping;t.repeat.set((b-a)*S*4,1);add(new T.PlaneGeometry((b-a)*S,.2),new T.MeshBasicMaterial({map:t}),X((a+b)/2),Y(py),PZ+.02)};rail(290,760,1350);
+// ===== devices =====
+function ctc(px,py,w,h,d,o){o=o||{};const W=w*S,H=h*S,x=X(px),y=Y(py);
+add(BX(W,H,d),M(o.c||0xd7d2c1,{r:.5}),x,y,PZ+d/2);
+const th=Math.min(H*.22,.26);
+[1,-1].forEach(s=>{add(BX(W*.96,th,d+.05),M(0x2f333b,{r:.6}),x,y+s*(H/2-th/2),PZ+(d+.05)/2);const n=o.n||(w>100?3:2);for(let i=0;i<n;i++)scr(x+(i-(n-1)/2)*W*.8/n,y+s*(H/2-th/2),PZ+d+.05)});
+add(BX(W*.8,H-2*th-.03,.02),M(0xece8da,{r:.4}),x,y,PZ+d+.01);
+if(o.lab)stk(o.lab,W*.6,Math.min(W*.3,H*.2),x,y-H*.05,PZ+d+.025);
+const ind=add(BX(W*.25,.06,.03),M(0x553300,{r:.3}),x,y+(H-2*th)*.3,PZ+d+.03);
+add(BX(W*.22,.03,.03),M(0x1f5fd0),x,y-(H-2*th)*.33,PZ+d+.03);return ind}
+const cbHs=[];const cbW=160*S,cbX=X(222),cbY=Y(170);
+const cbInd=ctc(222,170,160,150,.35,{c:0xeceef1});
+for(let i=0;i<3;i++){const g=new T.Group();g.position.set(cbX+(i-1)*cbW*.32,cbY,PZ+.4);const hd=new T.Mesh(BX(cbW*.24,.34,.14),M(0x1f5fd0,{r:.3}));hd.position.z=.05;hd.userData.click='cb';g.add(hd);scene.add(g);cbHs.push(g);cbHs.hd=(cbHs.hd||[]);cbHs.hd.push(hd)}
+const mcI=ctc(222,372,150,140,.4,{lab:'MC'}),yI=ctc(385,487,90,130,.3,{lab:'MC-Y',n:3}),dI=ctc(520,487,90,130,.3,{lab:'MC-D',n:3});
+ctc(265,650,140,100,.3,{c:0xe4e0d2,lab:'EOCR'});
+add(CY(.16,.1,28),DK,X(240),Y(655),PZ+.34);const ptr=add(BX(.02,.14,.01),new T.MeshBasicMaterial({color:0xffffff}),X(240),Y(655)+.04,PZ+.4);
+add(CY(.05,.08,16),M(0xd1242f,{r:.3}),X(303),Y(655),PZ+.34);
+[['R',165,0xd1242f],['S',220,0xf2f2f2],['T',278,0x1f5fd0]].forEach(a=>{add(BX(.3,.3,.22),M(a[2],{r:.4}),X(a[1]),Y(35),PZ+.11);lbl(a[0],a[1],8,.14)});
+// motor
+const mx=X(310),my=Y(890),mz=PZ+.75,BL=M(0x1f4fb5,{m:.35,r:.35});
+add(CX(.7,2.3),BL,mx,my,mz);for(let i=-4;i<=4;i++)add(CX(.745,.07),M(0x1a3f96,{m:.3}),mx+i*.24,my,mz);
+add(CX(.72,.12),M(0x16306e),mx-1.2,my,mz);add(CX(.66,.55),M(0x16306e),mx+1.4,my,mz);add(CX(.5,.06),M(0x0f2250),mx+1.7,my,mz);
+[-.7,.7].forEach(dx=>add(BX(.9,.12,.9),M(0x16306e),mx+dx,my-.76,mz));
+const tbz=mz+.7+.2;add(BX(1.3,.95,.5),M(0x1b2230,{r:.5}),mx,my+.13,tbz);add(BX(1.15,.8,.02),M(0xcdd3dd,{m:.3}),mx,my+.13,tbz+.26);
+[0,1].forEach(r=>[0,1,2].forEach(c=>{const sx=mx+(c-1)*.36,sy=my+(r?-.08:.38);add(CY(.065,.24,14),BRS,sx,sy,tbz+.38);add(CY(.1,.05,6),BRS,sx,sy,tbz+.33);
+lw([['U1','V1','W1'],['U2','V2','W2']][r][c],sx,sy+.17,tbz+.3,.13,'#14213d')}));
+stk('3상 유도전동기 380V 3.7kW',.9,.2,mx,my+.74,mz+.62,'#222','#d9dde4').rotation.x=-.9;
+const shaftG=new T.Group();shaftG.position.set(mx-1.65,my,mz);scene.add(shaftG);
+shaftG.add(new T.Mesh(CX(.15,.8,20),M(0xcfd4dc,{m:.5,r:.25})));const kk=new T.Mesh(BX(.5,.07,.1),M(0xd1242f));kk.position.y=.16;shaftG.add(kk);
+// controls
+const pb=(px,py,c,e,k)=>{add(BX(90*S,90*S,.14),M(0xaab0ba,{m:.3}),X(px),Y(py),PZ+.07);const rg=add(CY(.28,.06,30),CHR,X(px),Y(py),PZ+.17);rg.userData.click=k;
+const cp=add(CY(.2,.14,28),M(c,{r:.2,e:e}),X(px),Y(py),PZ+.23);cp.userData.click=k;return cp};
+const onB=pb(703,258,0x2da44e,0x0b4d1c,'on'),offB=pb(705,125,0xd1242f,0x5a0d12,'off');
+const hl=tex(64,64,g=>{const r=g.createRadialGradient(32,32,2,32,32,32);r.addColorStop(0,'rgba(255,255,255,.9)');r.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=r;g.fillRect(0,0,64,64)});
+ctc(790,280,50,160,.3,{lab:'MC',n:1});const rI=ctc(895,280,50,160,.3,{lab:'RL',n:1}),tI=ctc(1025,270,110,110,.3,{c:0xe8e4d8}),dsI=ctc(1148,280,50,160,.3,{lab:'D-SW',n:1}),mdI=ctc(1275,280,50,160,.3,{lab:'MC-D',n:1});
+const il1=ctc(980,470,40,110,.28,{lab:'b',n:1}),il2=ctc(980,590,40,100,.28,{lab:'b',n:1});
+const dtx=tex(256,256,(g)=>{g.fillStyle='#1b1e24';g.fillRect(0,0,256,256);g.fillStyle='#f2efe4';g.beginPath();g.arc(128,128,120,0,7);g.fill();g.fillStyle='#222';g.strokeStyle='#222';g.font='bold 24px sans-serif';g.textAlign='center';g.textBaseline='middle';
+for(let v=0;v<=20;v++){const a=v/20*1.5*Math.PI-.75*Math.PI,s=Math.sin(a),c=-Math.cos(a),l=v%5?8:16;g.lineWidth=v%5?2:4;g.beginPath();g.moveTo(128+s*100,128+c*100);g.lineTo(128+s*(100-l),128+c*(100-l));g.stroke();if(v%5==0)g.fillText(v,128+s*68,128+c*68)}g.fillText('[s]',128,200)});
+add(CY(.27,.06,30),DK,X(1025),Y(262),PZ+.33);const dsc=add(new T.CircleGeometry(.24,32),new T.MeshBasicMaterial({map:dtx}),X(1025),Y(262),PZ+.365);
+const nd=new T.Group();nd.position.set(X(1025),Y(262),PZ+.38);const nm=new T.Mesh(BX(.03,.2,.01),new T.MeshBasicMaterial({color:0xd1242f}));nm.position.y=.1;nd.add(nm);scene.add(nd);
+const lamps=[];[[785,0x2da44e],[892,0xd1242f],[987,0x2da44e],[1085,0xd1242f],[1178,0x2da44e],[1275,0xf0a30a]].forEach(a=>{const x=X(a[0]),y=Y(700);
+add(CY(.3,.1,30),CHR,x,y,PZ+.05);const tr=add(new T.TorusGeometry(.25,.035,10,30),M(0xb5bac4,{m:.5,r:.25}),x,y,PZ+.14);
+const gg=new T.SphereGeometry(.22,28,16,0,Math.PI*2,0,Math.PI/2);gg.rotateX(Math.PI/2);const ls=add(gg,M(a[1],{r:.12,m:.05}),x,y,PZ+.12);ls.scale.z=.6;
+const hh=add(new T.PlaneGeometry(1,1),new T.MeshBasicMaterial({map:hl,color:a[1],transparent:true,blending:T.AdditiveBlending,depthWrite:false}),x,y,PZ+.5);hh.visible=false;lamps.push({ls:ls,hh:hh,c:a[1]})});
+function lampSet(i,on){const l=lamps[i];l.ls.material.emissive.setHex(on?l.c:0);l.ls.material.emissiveIntensity=on?1.2:0;l.hh.visible=!!on}
+[['CB 배선용 차단기',365,170],['MC 주접촉기',135,392],['MC-Y Y결선용',395,598],['MC-D Δ결선용',552,598],['OL/EOCR 과부하',140,675],['T 스타-델타 타이머',1028,192],['MC',842,296],['D-SW Δ인터록',1213,296],['MC-D Δ',1338,296],['MC-D Δ인터록',1050,478],['D-SW Y인터록',1050,598],['OFF',705,72],['ON',703,206],
+['MC 동작',785,770],['RL 과부하',892,770],['MC-Y Y결선',987,770],['RL 과부하',1085,770],['MC-D Δ결선',1178,770],['GL 전원',1275,770]].forEach(a=>lbl(a[0],a[1],a[2],.17));
+stk('⚠ 교육용 시각화 · 전원 투입 전 배선 검증 필요',2.6,.4,X(1160),Y(925),PZ+.02,'#222','#f2d230');
+// ===== wiring practice =====
+const G={src:[],N:[],main:[],Y:[],D:[],ctrl:[]};
+const V=p=>new T.Vector3(X(p[0]),Y(p[1]),PZ+.14);
+function wire(g,c,pts){const P=pts.map(V),cum=[0],mats=[];
+for(let i=0;i<P.length-1;i++){const a=P[i],b=P[i+1],len=a.distanceTo(b);cum.push(cum[i]+len);if(len<1e-4)continue;const mt=M(c,{r:.35});mats.push(mt);
+const cy=new T.Mesh(new T.CylinderGeometry(.035,.035,len,8),mt);cy.position.copy(a).add(b).multiplyScalar(.5);cy.quaternion.setFromUnitVectors(new T.Vector3(0,1,0),b.clone().sub(a).normalize());scene.add(cy);
+const jt=new T.Mesh(new T.SphereGeometry(.035,8,8),mt);jt.position.copy(b);scene.add(jt)}
+const tot=cum[cum.length-1];
+const path={getPointAt:u=>{const d=u*tot;let i=0;while(i<P.length-2&&cum[i+1]<d)i++;const k=(d-cum[i])/Math.max(1e-6,cum[i+1]-cum[i]);return P[i].clone().lerp(P[i+1],Math.min(1,Math.max(0,k)))}};
+const m={material:{emissive:{setHex:h=>mats.forEach(x=>x.emissive.setHex(h))}}};
+const n=Math.max(2,Math.floor(tot/.5)),dots=[];for(let i=0;i<n;i++){const d=new T.Mesh(new T.SphereGeometry(.055,8,8),new T.MeshBasicMaterial({color:0xfff17a}));d.visible=false;scene.add(d);dots.push(d)}
+G[g].push({m:m,path:path,dots:dots,c:c})}
+const RD=0xd1242f,WH=0xf2f2f2,BU=0x1f5fd0,BK=0x2a2d33;
+wire('src',RD,[[165,62],[165,84],[179,98],[179,108]]);wire('src',WH,[[220,62],[222,108]]);wire('src',BU,[[278,62],[278,84],[265,98],[265,108]]);
+wire('N',BU,[[300,100],[625,100],[625,822],[1275,822]]);[785,892,987,1085,1178,1275].forEach(x=>wire('N',BU,[[x,756],[x,822]]));
+const termHit=[],uwMeshes=[],TM={};
+function term(id,name,p){const v=new T.Vector3(p[0],p[1],p[2]);const mk0=add(new T.SphereGeometry(.065,12,10),new T.MeshBasicMaterial({color:0xffd23f}),v.x,v.y,v.z);
+const ht=add(new T.SphereGeometry(.1,10,8),new T.MeshBasicMaterial({transparent:true,opacity:0,depthWrite:false}),v.x,v.y,v.z+.03);ht.userData.term=id;termHit.push(ht);TM[id]={name:name,v:v,mk:mk0,n:0}}
+const pl=(px,py,w,h,d,n)=>{const W=w*S,H=h*S,th=Math.min(H*.22,.26),x=X(px),y=Y(py),z=PZ+d+.12,top=[],bot=[];for(let i=0;i<n;i++){const sx=x+(i-(n-1)/2)*W*.8/n;top.push([sx,y+H/2-th/2,z]);bot.push([sx,y-H/2+th/2,z])}return{top:top,bot:bot}};
+const pCB=pl(222,170,160,150,.35,3),pMC=pl(222,372,150,140,.4,3),pY=pl(385,487,90,130,.3,3),pD=pl(520,487,90,130,.3,3),pO=pl(265,650,140,100,.3,3);
+['R','S','T'].forEach((c,i)=>{term('cb'+c,'CB 하단 '+c,pCB.bot[i]);term('mi'+c,'MC 상단 '+c,pMC.top[i]);term('mo'+c,'MC 하단 '+c,pMC.bot[i]);term('oi'+c,'OL 상단 '+c,pO.top[i]);term('oo'+c,'OL 하단 '+c,pO.bot[i]);
+term('yt'+i,'MC-Y 상단 '+(i+1),pY.top[i]);term('yb'+i,'MC-Y 하단 '+(i+1),pY.bot[i]);term('dt'+i,'MC-D 상단 '+(i+1),pD.top[i]);term('db'+i,'MC-D 하단 '+(i+1),pD.bot[i])});
+['U1','V1','W1','U2','V2','W2'].forEach((n,i)=>{const c=i%3,r=i<3?0:1;term(n,'전동기 '+n,[mx+(c-1)*.36,my+(r?-.08:.38),tbz+.53])});
+const cp=(id,nm,px,py,w,h,d)=>{const q=pl(px,py,w,h,d,1);term(id+'t',nm+' 상단',q.top[0]);term(id+'b',nm+' 하단',q.bot[0])};
+cp('cM','MC 접점',790,280,50,160,.3);cp('cR','RL 접점',895,280,50,160,.3);cp('cD','D-SW 접점',1148,280,50,160,.3);cp('cMD','MC-D 접점',1275,280,50,160,.3);cp('i1','Δ인터록',980,470,40,110,.28);cp('i2','Y인터록',980,590,40,100,.28);
+const pT=pl(1025,270,110,110,.3,3);term('cTt','타이머 상단',pT.top[1]);term('cTb0','타이머 하단 왼쪽',pT.bot[0]);term('cTb2','타이머 하단 오른쪽',pT.bot[2]);
+term('off','OFF 버튼 출력',[X(748),Y(125),PZ+.2]);term('on','ON 버튼 출력',[X(703),Y(312),PZ+.2]);
+['MC 동작','RL 과부하','MC-Y(Y결선)','RL 과부하(2)','MC-D(Δ결선)','GL 전원'].forEach((n,i)=>term('l'+i,n+' 램프',[X([785,892,987,1085,1178,1275][i]),Y(700)-.2,PZ+.22]));
+const REQ=[],rq=(a,b,g,c)=>REQ.push({a:a,b:b,g:g,c:c,k:[a,b].sort().join('|')});
+[['R',RD],['S',WH],['T',BU]].forEach((x,i)=>{const c=x[0],col0=x[1];rq('cb'+c,'mi'+c,'src',col0);rq('mo'+c,'oi'+c,'main',col0);rq('oo'+c,['U1','V1','W1'][i],'main',col0);rq('yt'+i,['U2','V2','W2'][i],'Y',col0);rq('oo'+c,'dt'+i,'D',col0);rq('db'+i,['W2','U2','V2'][i],'D',col0)});
+rq('yb0','yb1','Y',BK);rq('yb1','yb2','Y',BK);
+[['off','cMt'],['cMt','cRt'],['cRt','cTt'],['cTt','cDt'],['cDt','cMDt']].forEach(a=>rq(a[0],a[1],'ctrl',RD));
+[['on','cMb','ctrl'],['cMb','l0','ctrl'],['cRb','l1','ctrl'],['cTb0','i1t','ctrl'],['i1b','i2t','ctrl'],['i2b','l2','Y'],['cTb2','l3','ctrl'],['cDb','l4','D'],['cMDb','l5','ctrl']].forEach(a=>rq(a[0],a[1],a[2],RD));
+let sel=null,col=RD,uw=[],ghost=null,hint=null,done=false,cnt=0,wrong=0;
+function say(m){st.msg=m;clearTimeout(say.t);say.t=setTimeout(()=>{st.msg=''},3500)}
+function mkw(a,b,c,gh){const A=TM[a].v,B=TM[b].v,len=A.distanceTo(B),mid=A.clone().add(B).multiplyScalar(.5),o=((a.length*3+b.length*5)%7-3)*.035;mid.z+=.3+len*.25;mid.x+=o;mid.y+=o;
+const P=[],cum=[0];for(let i=0;i<=14;i++){const t=i/14,u=1-t;P.push(new T.Vector3(u*u*A.x+2*u*t*mid.x+t*t*B.x,u*u*A.y+2*u*t*mid.y+t*t*B.y,u*u*A.z+2*u*t*mid.z+t*t*B.z));if(i)cum.push(cum[i-1]+P[i].distanceTo(P[i-1]))}
+const mt=new T.MeshStandardMaterial({color:c,roughness:.35,metalness:.1,transparent:!!gh,opacity:gh?.4:1}),grp=new T.Group(),w={a:a,b:b,k:[a,b].sort().join('|'),c:c,mt:mt,grp:grp,dots:[],g:null,flash:0,tot:cum[14],ok:false};
+for(let i=0;i<14;i++){const p=P[i],q=P[i+1],l=p.distanceTo(q),cy=new T.Mesh(new T.CylinderGeometry(.03,.03,l*1.02,8),mt);cy.position.copy(p).add(q).multiplyScalar(.5);cy.quaternion.setFromUnitVectors(new T.Vector3(0,1,0),q.clone().sub(p).normalize());if(!gh){cy.userData.wire=w;uwMeshes.push(cy)}grp.add(cy)}
+scene.add(grp);
+w.at=u=>{const d=u*w.tot;let i=0;while(i<13&&cum[i+1]<d)i++;return P[i].clone().lerp(P[i+1],Math.min(1,Math.max(0,(d-cum[i])/Math.max(1e-6,cum[i+1]-cum[i]))))};
+return w}
+function mkdots(w){const n=Math.max(3,Math.floor(w.tot/.45));for(let i=0;i<n;i++){const d=new T.Mesh(new T.SphereGeometry(.05,8,8),new T.MeshBasicMaterial({color:0xfff17a}));d.visible=false;w.grp.add(d);w.dots.push(d)}}
+function removeWire(w){scene.remove(w.grp);const keep=uwMeshes.filter(m=>m.userData.wire!==w);uwMeshes.length=0;keep.forEach(m=>uwMeshes.push(m));uw=uw.filter(x=>x!==w);recalc()}
+function addWire(a,b){const k=[a,b].sort().join('|');if(uw.some(w=>w.k==k)){say('이미 연결된 선입니다');return}const w=mkw(a,b,col,false),r=REQ.find(q=>q.k==k);w.ok=!!r;if(r){w.g=r.g;mkdots(w)}uw.push(w);recalc();if(!done)say(TM[a].name+' ↔ '+TM[b].name+' 연결')}
+function recalc(){cnt=REQ.filter(q=>uw.some(w=>w.k==q.k)).length;wrong=uw.filter(w=>!w.ok).length;const was=done;done=cnt==REQ.length&&wrong==0;if(!done){st.run=false;st.phase='off';st.t=0}
+for(const id in TM)TM[id].n=0;uw.forEach(w=>{TM[w.a].n++;TM[w.b].n++});if(done&&!was)say('✅ 결선 완료! ON 버튼을 눌러 기동해 보세요')}
+function clickTerm(id){if(!sel){sel=id;say('선택: '+TM[id].name+' — 연결할 다른 단자를 누르세요');return}if(sel==id){sel=null;return}const a=sel;sel=null;addWire(a,id)}
+document.querySelectorAll('[data-c]').forEach(b=>b.onclick=()=>{col={red:RD,white:WH,blue:BU,black:BK}[b.dataset.c];say('전선 색: '+b.textContent)});
+$('bUndo').onclick=()=>{if(uw.length)removeWire(uw[uw.length-1])};
+$('bClr').onclick=()=>{uw.slice().forEach(removeWire)};
+$('bGhost').onclick=()=>{if(!ghost){ghost=new T.Group();scene.add(ghost);REQ.forEach(q=>{const w=mkw(q.a,q.b,q.c,true);scene.remove(w.grp);ghost.add(w.grp)})}ghost.visible=!ghost.visible;$('bGhost').textContent=ghost.visible?'정답 숨기기':'정답 보기'};
+$('bHint').onclick=()=>{const q=REQ.find(q=>!uw.some(w=>w.k==q.k));if(!q){say('빠진 연결이 없습니다. 결선 확인을 눌러 보세요');return}hint={a:q.a,b:q.b,u:performance.now()+5000};say('힌트: '+TM[q.a].name+' ↔ '+TM[q.b].name)};
+$('bCheck').onclick=()=>{const ms=REQ.filter(q=>!uw.some(w=>w.k==q.k)),wr=uw.filter(w=>!w.ok);wr.forEach(w=>w.flash=performance.now()+2500);
+const el=$('res');el.style.display='block';el.innerHTML='<b>결선 확인 '+cnt+'/'+REQ.length+'</b>'+(done?'<br>✅ 모든 배선이 맞습니다!':'')+(wr.length?'<br>❌ 잘못된 선 '+wr.length+'개 (깜빡이는 빨간 선, 클릭하면 삭제): '+wr.slice(0,4).map(w=>TM[w.a].name+'↔'+TM[w.b].name).join(', '):'')+(ms.length?'<br>⬜ 빠진 연결 '+ms.length+'개: '+ms.slice(0,5).map(q=>TM[q.a].name+'↔'+TM[q.b].name).join(', ')+(ms.length>5?' …':''):'');
+clearTimeout(el.t);el.t=setTimeout(()=>{el.style.display='none'},9000)};
+function updWires(tt){const nw=performance.now();
+for(const g in G)G[g].forEach(w=>{w.m.material.emissive.setHex(act[g]?(((w.c&0xfefefe)>>1)&0x7f7f7f):0);w.dots.forEach((d,i)=>{d.visible=!!act[g];if(act[g])d.position.copy(w.path.getPointAt(((tt*.35)+i/w.dots.length)%1))})});
+uw.forEach(w=>{const on=w.g&&act[w.g]&&done,fl=w.flash>nw&&Math.floor(nw/120)%2==0;w.mt.emissive.setHex(fl?0xff0000:on?(((w.c&0xfefefe)>>1)&0x7f7f7f):0);w.dots.forEach((d,i)=>{d.visible=!!on;if(on)d.position.copy(w.at(((tt*.35)+i/w.dots.length)%1))})});
+for(const id in TM){const t=TM[id],h=hint&&hint.u>nw&&(hint.a==id||hint.b==id),s=sel==id;t.mk.material.color.setHex(s?0x2ee86b:h?0xff7a00:t.n?0x4aa3ff:0xffd23f);t.mk.scale.setScalar(s?1.9:h?1.5+.4*Math.sin(nw/120):1)}}
+// ===== doors (both sides of the cabinet) =====
+const doors=[];
+function door(x,url,txt,c){add(BX(2.3,4.7,.12),M(0x39414f,{m:.3}),x,2.35,-5.93);
+const lf=add(BX(2,4.4,.14),M(c,{r:.45,m:.2}),x,2.2,-5.82);lf.userData.url=url;doors.push(lf);
+const w=add(BX(.8,1.2,.03),M(0xbfd9ee,{r:.1,e:0x203040}),x,3.4,-5.73);w.userData.url=url;doors.push(w);
+add(BX(1.9,.4,.02),CHR,x,.3,-5.74);add(BX(.38,.07,.07),CHR,x+.75,2.1,-5.68);add(CY(.09,.03,18),CHR,x+.75,2.1,-5.73);
+stk(txt,2.4,.45,x,5.15,-5.9,'#fff','#2b3a55')}
+door(-6.9,'https://ai.yit.ac.kr/3d/elec/interlockLab.html','◀ 정·역회전 인터록 실습실',0x4f6a96);
+door(6.9,'consistency.html','자기유지 회로 실습실 ▶',0x4f8a6a);
+// ===== logic =====
+const st={cb:true,fault:false,run:false,phase:'off',t:0,set:5,speed:0,noIL:false};
+const act={src:0,N:0,main:0,Y:0,D:0,ctrl:0};
+function press(w){if(w=='on'){if(!done){say(wrong?'잘못된 배선이 있습니다. 결선 확인을 눌러 보세요':'결선이 아직 완료되지 않았습니다 ('+cnt+'/'+REQ.length+')');return}if(st.cb&&!st.run){st.run=true;st.phase='Y';st.t=0}}else if(w=='off'){st.run=false;st.phase='off';st.t=0}else if(w=='cb'){if(st.fault){st.fault=false;st.cb=true}else{st.cb=!st.cb;if(!st.cb){st.run=false;st.phase='off'}}}}
+$('bOn').onclick=()=>press('on');$('bOff').onclick=()=>press('off');
+$('tm').oninput=e=>{st.set=+e.target.value;$('tv').textContent=st.set};$('il').onchange=e=>st.noIL=e.target.checked;
+$('theory').onclick=()=>$('ov').style.display='flex';$('cl').onclick=()=>$('ov').style.display='none';
+// camera
+const cur={yaw:0,pit:.08,dist:12,tx:0,ty:3.2,tz:PZ},tg=Object.assign({},cur);
+function view(v){const a=innerWidth/innerHeight;tg.yaw=0;tg.pit=.08;const f=Math.tan(cam.fov*Math.PI/360);
+if(v=='all'){tg.tx=0;tg.ty=3.2;tg.tz=PZ;tg.dist=Math.min(15,Math.max(6.9/(2*f),8.4/(f*a)))}
+else if(v=='panel'){tg.tx=0;tg.ty=3.4;tg.tz=PZ;tg.dist=Math.min(15,Math.max(3.4/f+.5,4.4/(f*a)))}else if(v=='main'){tg.tx=-2.1;tg.ty=3.5;tg.tz=PZ;tg.dist=Math.min(15,Math.max(5.8,3.2/(f*a)))}else if(v=='ctrl'){tg.tx=2.1;tg.ty=3.5;tg.tz=PZ;tg.dist=Math.min(15,Math.max(5.8,3.6/(f*a)))}else{tg.tx=-2.3;tg.ty=1.6;tg.tz=PZ+1;tg.dist=Math.min(15,Math.max(3.6,2.4/(f*a)))}}
+document.querySelectorAll('[data-v]').forEach(b=>b.onclick=()=>view(b.dataset.v));
+function resize(){const a=innerWidth/innerHeight;R.setSize(innerWidth,innerHeight,false);cam.aspect=a;cam.fov=a<1?62:50;cam.updateProjectionMatrix()}
+addEventListener('resize',resize);resize();view('all');Object.assign(cur,tg);
+let dn=null;const ray=new T.Raycaster(),mp=new T.Vector2(),ck=[onB,offB].concat(cbHs.hd,doors);
+function pick(e){mp.set(e.clientX/innerWidth*2-1,-(e.clientY/innerHeight)*2+1);ray.setFromCamera(mp,cam);const h=ray.intersectObjects(ck.concat(termHit))[0]||ray.intersectObjects(uwMeshes)[0];return h&&h.object}
+cv.addEventListener('pointerdown',e=>{dn={x:e.clientX,y:e.clientY,mv:0};cv.setPointerCapture(e.pointerId)});
+cv.addEventListener('pointermove',e=>{if(dn){const dx=e.clientX-dn.x,dy=e.clientY-dn.y;dn.mv+=Math.abs(dx)+Math.abs(dy);dn.x=e.clientX;dn.y=e.clientY;tg.yaw=Math.max(-1.3,Math.min(1.3,tg.yaw-dx*.005));tg.pit=Math.max(-.05,Math.min(1,tg.pit+dy*.004))}else{cv.style.cursor=pick(e)?'pointer':'grab'}});
+cv.addEventListener('pointerup',e=>{if(dn&&dn.mv<6){const o=pick(e);if(o){if(o.userData.url)location.href=o.userData.url;else if(o.userData.term)clickTerm(o.userData.term);else if(o.userData.wire)removeWire(o.userData.wire);else if(o.userData.click)press(o.userData.click)}}dn=null});
+cv.addEventListener('wheel',e=>{e.preventDefault();tg.dist=Math.max(2.5,Math.min(15,tg.dist+e.deltaY*.01))},{passive:false});
+let last=performance.now(),tt=0;
+function loop(now){const dt=Math.min(.05,(now-last)/1000);last=now;tt+=dt;
+if(st.run&&st.phase=='Y'){st.t+=dt;if(st.t>=st.set){st.phase='D';if(st.noIL){st.fault=true;st.cb=false;st.run=false;st.phase='off'}}}
+const p=st.cb&&!st.fault,r=p&&st.run;
+act.src=act.N=p?1:0;act.ctrl=act.main=r?1:0;act.Y=r&&st.phase=='Y'?1:0;act.D=r&&st.phase=='D'?1:0;
+if(st.noIL&&r&&st.phase=='D')act.Y=1;
+updWires(tt);
+const bl=st.fault&&Math.floor(tt*3)%2==0;
+lampSet(0,r);lampSet(1,bl);lampSet(2,!!act.Y);lampSet(3,bl);lampSet(4,!!act.D);lampSet(5,p);
+const em=(m,on)=>m.material.emissive.setHex(on?0xff8800:0);em(mcI,r);em(yI,act.Y);em(dI,act.D);em(cbInd,st.fault);em(il1,act.Y);em(il2,act.D);
+cbHs.forEach(g=>g.rotation.x+=((p?0:.7)-g.rotation.x)*.2);onB.position.z=PZ+.23+(r?-.05:0);
+const tgt=act.D?18:act.Y?7:0;st.speed+=(tgt-st.speed)*Math.min(1,dt*(tgt?1.2:.5));shaftG.rotation.x+=st.speed*dt;
+nd.rotation.z=.75*Math.PI-(st.phase=='Y'?st.t/st.set:st.phase=='D'?1:0)*1.5*Math.PI;
+$('bar').firstChild.style.width=(st.phase=='Y'?st.t/st.set*100:st.phase=='D'?100:0)+'%';
+$('st').textContent=st.fault?'⚠ 상간 단락! Y·Δ 접촉기 동시 투입 → CB 트립 (CB 손잡이를 눌러 복구)':!st.cb?'CB 차단 — 제어반 위 CB 손잡이를 눌러 투입':st.phase=='Y'?'① Y 기동 중 (MC + MC-Y) · 권선 전압 1/√3, 기동전류 약 1/3':st.phase=='D'?'② Δ 운전 중 (MC + MC-D) · MC-Y는 b접점 인터록으로 차단':(done?'정지 — ON 버튼을 눌러 기동하세요':'배선 실습 — 노란 단자를 차례로 눌러 전선을 연결하세요 ('+cnt+'/'+REQ.length+')');
+if(st.msg)$('st').textContent=st.msg;
+['yaw','pit','dist','tx','ty','tz'].forEach(k=>cur[k]+=(tg[k]-cur[k])*.12);
+cam.position.set(cur.tx+cur.dist*Math.sin(cur.yaw)*Math.cos(cur.pit),cur.ty+cur.dist*Math.sin(cur.pit),cur.tz+cur.dist*Math.cos(cur.yaw)*Math.cos(cur.pit));cam.lookAt(cur.tx,cur.ty,cur.tz);
+R.render(scene,cam);requestAnimationFrame(loop)}
+requestAnimationFrame(loop);
+})();
+</script></body></html>
